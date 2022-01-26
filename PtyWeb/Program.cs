@@ -123,49 +123,80 @@ namespace PtyWeb
                         DebugWriteLine($"Key:[ {string.Join(" + ", modifiers)}], keyChar: {keyChar}, code: {code}({code.ToString("X")})");
                         if (keyChar == '\0')
                         {
-                            if (IsWin)
+                            // from: https://superuser.com/questions/248517/show-keys-pressed-in-linux/921637#921637
+                            // 使用 Linux 程序 `shokey` 可显示按下的键, 命令 `showkey -a`, 退出命令快捷键 `Ctrl + D`
+                            DebugWriteLine($"IsWin: {IsWin}");
+                            switch (keyInfo.Key)
                             {
-                                // from: https://superuser.com/questions/248517/show-keys-pressed-in-linux/921637#921637
-                                // 使用 Linux 程序 `shokey` 可显示按下的键, 命令 `showkey -a`, 退出命令快捷键 `Ctrl + D`
-                                switch (keyInfo.Key)
-                                {
-                                    case ConsoleKey.LeftArrow:
-                                        writer.Write("\x1b\x5b\x44"); // ^[[D
-                                        break;
-                                    case ConsoleKey.UpArrow:
-                                        writer.Write("\x1b\x5b\x41"); // ^[[A
-                                        break;
-                                    case ConsoleKey.RightArrow:
-                                        writer.Write("\x1b\x5b\x43"); // ^[[C
-                                        break;
-                                    case ConsoleKey.DownArrow:
-                                        writer.Write("\x1b\x5b\x42"); // ^[[B
-                                        break;
-                                    case ConsoleKey.PageUp:
-                                        writer.Write("\x1b\x5b\x35\x7e"); // ^[[5~
-                                        break;
-                                    case ConsoleKey.PageDown:
-                                        writer.Write("\x1b\x5b\x36\x7e"); // ^[[6~
-                                        break;
-                                    case ConsoleKey.Insert:
-                                        writer.Write("\x1b\x5b\x32\x7e"); // ^[[2~
-                                        break;
-                                    case ConsoleKey.Delete:
-                                        writer.Write("\x1b\x5b\x33\x7e"); // ^[[3~
-                                        break;
-                                    case ConsoleKey.Home:
-                                        writer.Write("\x1b\x5b\x48"); // ^[[H
-                                        break;
-                                    case ConsoleKey.End:
-                                        writer.Write("\x1b\x5b\x46"); // ^[[F
-                                        break;
-                                    default:
-                                        break;
-                                }
-                            }
-                            else
-                            {
-                                writer.Write((char)code);
+                                case ConsoleKey.LeftArrow:
+                                    writer.Write($"\x1b{(IsWin ? "\x5b" : "\x4f")}\x44"); // ^[[D、^[OD
+                                    break;
+                                case ConsoleKey.UpArrow:
+                                    writer.Write($"\x1b{(IsWin ? "\x5b" : "\x4f")}\x41"); // ^[[A、^[OA
+                                    break;
+                                case ConsoleKey.RightArrow:
+                                    writer.Write($"\x1b{(IsWin ? "\x5b" : "\x4f")}\x43"); // ^[[C、^[OC
+                                    break;
+                                case ConsoleKey.DownArrow:
+                                    writer.Write($"\x1b{(IsWin ? "\x5b" : "\x4f")}\x42"); // ^[[B、^[OB
+                                    break;
+                                case ConsoleKey.PageUp:
+                                    writer.Write($"\x1b\x5b\x35\x7e"); // ^[[5~
+                                    break;
+                                case ConsoleKey.PageDown:
+                                    writer.Write($"\x1b\x5b\x36\x7e"); // ^[[6~
+                                    break;
+                                case ConsoleKey.Insert:
+                                    writer.Write($"\x1b\x5b\x32\x7e"); // ^[[2~
+                                    break;
+                                case ConsoleKey.Delete:
+                                    writer.Write($"\x1b\x5b\x33\x7e"); // ^[[3~
+                                    break;
+                                case ConsoleKey.Home:
+                                    writer.Write($"\x1b{(IsWin ? '\x5b' : '\x4f')}\x48"); // ^[[H、^[OH
+                                    break;
+                                case ConsoleKey.End:
+                                    writer.Write($"\x1b{(IsWin ? '\x5b' : '\x4f')}\x46"); // ^[[H、^[OF
+                                    break;
+                                case ConsoleKey.F1:
+                                    writer.Write($"\x1b\x4f\x50"); // ^[OP
+                                    break;
+                                case ConsoleKey.F2:
+                                    writer.Write($"\x1b\x4f\x51"); // ^[OQ
+                                    break;
+                                case ConsoleKey.F3:
+                                    writer.Write($"\x1b\x4f\x52"); // ^[OR
+                                    break;
+                                case ConsoleKey.F4:
+                                    writer.Write($"\x1b\x4f\x53"); // ^[OS
+                                    break;
+                                case ConsoleKey.F5:
+                                    writer.Write($"\x1b\x5b\x31\x35\x7e"); // ^[[15~
+                                    break;
+                                case ConsoleKey.F6:
+                                    writer.Write($"\x1b\x5b\x31\x37\x7e"); // ^[[17~
+                                    break;
+                                case ConsoleKey.F7:
+                                    writer.Write($"\x1b\x5b\x31\x38\x7e"); // ^[[18~
+                                    break;
+                                case ConsoleKey.F8:
+                                    writer.Write($"\x1b\x5b\x31\x39\x7e"); // ^[[19~
+                                    break;
+                                case ConsoleKey.F9:
+                                    writer.Write($"\x1b\x5b\x32\x30\x7e"); // ^[[20~
+                                    break;
+                                case ConsoleKey.F10:
+                                    writer.Write($"\x1b\x5b\x32\x31\x7e"); // ^[[21~
+                                    break;
+                                case ConsoleKey.F11:
+                                    writer.Write($"\x1b\x5b\x32\x33\x7e"); // ^[[23~
+                                    break;
+                                case ConsoleKey.F12:
+                                    writer.Write($"\x1b\x5b\x32\x34\x7e"); // ^[[24~
+                                    break;
+                                default:
+                                    writer.Write(Convert.ToByte(code));
+                                    break;
                             }
                         }
                         else
