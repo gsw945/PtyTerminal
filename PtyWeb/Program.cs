@@ -15,19 +15,51 @@ namespace PtyWeb
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            if (File.Exists(DebugFilePath))
+            {
+                File.Delete(DebugFilePath);
+            }
+            Console.WriteLine($"Debug File: [{DebugFilePath}]");
+            DebugWriteLine("Hello Pty!");
 
             try
             {
                 Task.WaitAll(
-                // ConnectToTerminal(),
-                RealTerminal(args)
-            );
+                    // ConnectToTerminal(),
+                    RealTerminal(args)
+                );
             }
             catch (Exception ex)
             {
-                Debug.WriteLine(ex.Message);
+                DebugWriteLine(ex.Message);
             }
+        }
+
+        private static string __debugFilePath;
+        private static string DebugFilePath
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(__debugFilePath))
+                {
+                    __debugFilePath = Path.Combine(Environment.CurrentDirectory, "pty-terminal.debug");
+                }
+                return __debugFilePath;
+            }
+        }
+
+        private static void DebugWrite(string msg)
+        {
+            File.AppendAllText(DebugFilePath, msg, Encoding.UTF8);
+            // Console.Write(msg);
+            // Debug.Write(msg);
+        }
+
+        private static void DebugWriteLine(string msg = null)
+        {
+            DebugWrite((msg == null ? string.Empty : msg) + Environment.NewLine);
+            // Console.WriteLine(msg);
+            // Debug.WriteLine(msg);
         }
 
         private static void CopyInputToPipe(CancellationTokenSource cts, IPtyConnection terminal)
@@ -65,11 +97,11 @@ namespace PtyWeb
                             modifiers.Add("Alt");
                         }
                         modifiers.Add(Enum.GetName(keyInfo.Key));
-                        Debug.WriteLine($"Key:[ {string.Join(" + ", modifiers)}], keyChar: {keyChar}");
+                        DebugWrite($"Key:[ {string.Join(" + ", modifiers)}], keyChar: {keyChar}");
                         if (keyChar == '\0')
                         {
                             var code = (uint)keyInfo.Key;
-                            Debug.WriteLine($"code: {code}({code.ToString("X")})");
+                            DebugWriteLine($", code: {code}({code.ToString("X")})");
                             // from: https://superuser.com/questions/248517/show-keys-pressed-in-linux/921637#921637
                             // 使用 Linux 程序 `shokey` 可显示按下的键, 命令 `showkey -a`, 退出命令快捷键 `Ctrl + D`
                             switch (keyInfo.Key)
@@ -110,6 +142,7 @@ namespace PtyWeb
                         }
                         else
                         {
+                            DebugWriteLine();
                             // send input character-by-character to the pipe
                             writer.Write(keyChar);
                         }
@@ -135,8 +168,9 @@ namespace PtyWeb
             */
             var cmd = Path.Combine(Environment.SystemDirectory, "cmd.exe");
             var powershell = Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe");
-            var bash = @"D:\installed\msys64\usr\bin\bash.exe";
-            string app = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? powershell : bash;
+            // var bash = @"D:\installed\msys64\usr\bin\bash.exe";
+            var bash = @"/usr/bin/bash";
+            string app = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? cmd : bash;
             var options = new PtyOptions()
             {
                 Name = "Custom terminal",
@@ -157,7 +191,7 @@ namespace PtyWeb
             IPtyConnection terminal = await PtyProvider.SpawnAsync(options, TimeoutToken);
             terminal.ProcessExited += (sender, e) =>
             {
-                Console.Write($"ExitCode: {terminal.ExitCode}");
+                DebugWriteLine($"ExitCode: {terminal.ExitCode}");
                 cts.Cancel();
             };
 
@@ -190,7 +224,7 @@ namespace PtyWeb
                         modifiers.Add("Alt");
                     }
                     modifiers.Add(Enum.GetName(keyInfo.Key));
-                    Debug.WriteLine($"Key: {string.Join(" + ", modifiers)}");
+                    DebugWriteLine($"Key: {string.Join(" + ", modifiers)}");
                     if (keyInfo.Key == ConsoleKey.Q || keyInfo.Key == ConsoleKey.Escape)
                     {
                         break;
@@ -284,7 +318,7 @@ namespace PtyWeb
                     firstOutput.TrySetResult(null);
 
                     output += encoding.GetString(buffer, 0, count);
-                    Console.WriteLine($"output: {output}");
+                    DebugWriteLine($"output: {output}");
                     output = output.Replace("\r", string.Empty).Replace("\n", string.Empty);
                     output = ansiRegex.Replace(output, string.Empty);
 
@@ -348,7 +382,7 @@ namespace PtyWeb
                     exitCode == 1 || // Pseudo Console exit code on Win 10.
                     exitCode == 0 // pty exit code on *nix.
                 );
-                Console.WriteLine($"result: {result}");
+                DebugWriteLine($"result: {result}");
             }
 
             terminal.WaitForExit(TestTimeoutMs);
