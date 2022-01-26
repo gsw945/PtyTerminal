@@ -31,7 +31,29 @@ namespace PtyWeb
             }
             catch (Exception ex)
             {
-                DebugWriteLine(ex.Message);
+                DebugWriteLine($"{ex.GetType()}: {ex.Message}");
+                if (ex.InnerException != null)
+                {
+                    DebugWriteLine($"{nameof(ex.InnerException)}: {ex.InnerException.Message}");
+                    DebugWriteLine($"{ex.InnerException.StackTrace}");
+                }
+                else
+                {
+                    DebugWriteLine($"{ex.StackTrace}");
+                }
+            }
+        }
+
+        private static bool? __isWin;
+        private static bool IsWin
+        {
+            get
+            {
+                if (__isWin == null)
+                {
+                    __isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+                }
+                return (bool)__isWin;
             }
         }
 
@@ -97,52 +119,57 @@ namespace PtyWeb
                             modifiers.Add("Alt");
                         }
                         modifiers.Add(Enum.GetName(keyInfo.Key));
-                        DebugWrite($"Key:[ {string.Join(" + ", modifiers)}], keyChar: {keyChar}");
+                        var code = (uint)keyInfo.Key;
+                        DebugWriteLine($"Key:[ {string.Join(" + ", modifiers)}], keyChar: {keyChar}, code: {code}({code.ToString("X")})");
                         if (keyChar == '\0')
                         {
-                            var code = (uint)keyInfo.Key;
-                            DebugWriteLine($", code: {code}({code.ToString("X")})");
-                            // from: https://superuser.com/questions/248517/show-keys-pressed-in-linux/921637#921637
-                            // 使用 Linux 程序 `shokey` 可显示按下的键, 命令 `showkey -a`, 退出命令快捷键 `Ctrl + D`
-                            switch (keyInfo.Key)
+                            if (IsWin)
                             {
-                                case ConsoleKey.LeftArrow:
-                                    writer.Write("\x1b\x5b\x44"); // ^[[D
-                                    break;
-                                case ConsoleKey.UpArrow:
-                                    writer.Write("\x1b\x5b\x41"); // ^[[A
-                                    break;
-                                case ConsoleKey.RightArrow:
-                                    writer.Write("\x1b\x5b\x43"); // ^[[C
-                                    break;
-                                case ConsoleKey.DownArrow:
-                                    writer.Write("\x1b\x5b\x42"); // ^[[B
-                                    break;
-                                case ConsoleKey.PageUp:
-                                    writer.Write("\x1b\x5b\x35\x7e"); // ^[[5~
-                                    break;
-                                case ConsoleKey.PageDown:
-                                    writer.Write("\x1b\x5b\x36\x7e"); // ^[[6~
-                                    break;
-                                case ConsoleKey.Insert:
-                                    writer.Write("\x1b\x5b\x32\x7e"); // ^[[2~
-                                    break;
-                                case ConsoleKey.Delete:
-                                    writer.Write("\x1b\x5b\x33\x7e"); // ^[[3~
-                                    break;
-                                case ConsoleKey.Home:
-                                    writer.Write("\x1b\x5b\x48"); // ^[[H
-                                    break;
-                                case ConsoleKey.End:
-                                    writer.Write("\x1b\x5b\x46"); // ^[[F
-                                    break;
-                                default:
-                                    break;
+                                // from: https://superuser.com/questions/248517/show-keys-pressed-in-linux/921637#921637
+                                // 使用 Linux 程序 `shokey` 可显示按下的键, 命令 `showkey -a`, 退出命令快捷键 `Ctrl + D`
+                                switch (keyInfo.Key)
+                                {
+                                    case ConsoleKey.LeftArrow:
+                                        writer.Write("\x1b\x5b\x44"); // ^[[D
+                                        break;
+                                    case ConsoleKey.UpArrow:
+                                        writer.Write("\x1b\x5b\x41"); // ^[[A
+                                        break;
+                                    case ConsoleKey.RightArrow:
+                                        writer.Write("\x1b\x5b\x43"); // ^[[C
+                                        break;
+                                    case ConsoleKey.DownArrow:
+                                        writer.Write("\x1b\x5b\x42"); // ^[[B
+                                        break;
+                                    case ConsoleKey.PageUp:
+                                        writer.Write("\x1b\x5b\x35\x7e"); // ^[[5~
+                                        break;
+                                    case ConsoleKey.PageDown:
+                                        writer.Write("\x1b\x5b\x36\x7e"); // ^[[6~
+                                        break;
+                                    case ConsoleKey.Insert:
+                                        writer.Write("\x1b\x5b\x32\x7e"); // ^[[2~
+                                        break;
+                                    case ConsoleKey.Delete:
+                                        writer.Write("\x1b\x5b\x33\x7e"); // ^[[3~
+                                        break;
+                                    case ConsoleKey.Home:
+                                        writer.Write("\x1b\x5b\x48"); // ^[[H
+                                        break;
+                                    case ConsoleKey.End:
+                                        writer.Write("\x1b\x5b\x46"); // ^[[F
+                                        break;
+                                    default:
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                writer.Write((char)code);
                             }
                         }
                         else
                         {
-                            DebugWriteLine();
                             // send input character-by-character to the pipe
                             writer.Write(keyChar);
                         }
@@ -170,7 +197,7 @@ namespace PtyWeb
             var powershell = Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe");
             // var bash = @"D:\installed\msys64\usr\bin\bash.exe";
             var bash = @"/usr/bin/bash";
-            string app = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? cmd : bash;
+            string app = IsWin ? cmd : bash;
             var options = new PtyOptions()
             {
                 Name = "Custom terminal",
@@ -275,7 +302,7 @@ namespace PtyWeb
             var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
             const string Data = "abc✓ЖЖЖ①Ⅻㄨㄩ 啊阿鼾齄丂丄狚狛狜狝﨨﨩ˊˋ˙– ⿻〇㐀㐁䶴䶵";
 
-            string app = RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
+            string app = IsWin ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
             var options = new PtyOptions()
             {
                 Name = "Custom terminal",
@@ -389,3 +416,4 @@ namespace PtyWeb
         }
     }
 }
+
