@@ -15,7 +15,7 @@ namespace PtyWeb
     {
         static void Main(string[] args)
         {
-            // CliDemo.Run(args);
+            // CliDemo.Run();
 
             var url = args.Length > 0 ? args[0] : "http://*:8877";
 

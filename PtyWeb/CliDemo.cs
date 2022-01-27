@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -13,75 +12,30 @@ namespace PtyWeb
 {
     public class CliDemo
     {
-        public static void Run(string[] args)
+        public static void Run()
         {
-            if (File.Exists(DebugFilePath))
-            {
-                File.Delete(DebugFilePath);
-            }
-            Console.WriteLine($"Debug File: [{DebugFilePath}]");
-            DebugWriteLine("Hello Pty!");
+            Utils.DebugWriteLine("Hello Pty!");
 
             try
             {
                 Task.WaitAll(
                     // ConnectToTerminal(),
-                    RealTerminal(args)
+                    RealTerminal()
                 );
             }
             catch (Exception ex)
             {
-                DebugWriteLine($"{ex.GetType()}: {ex.Message}");
+                Utils.DebugWriteLine($"{ex.GetType()}: {ex.Message}");
                 if (ex.InnerException != null)
                 {
-                    DebugWriteLine($"{nameof(ex.InnerException)}: {ex.InnerException.Message}");
-                    DebugWriteLine($"{ex.InnerException.StackTrace}");
+                    Utils.DebugWriteLine($"{nameof(ex.InnerException)}: {ex.InnerException.Message}");
+                    Utils.DebugWriteLine($"{ex.InnerException.StackTrace}");
                 }
                 else
                 {
-                    DebugWriteLine($"{ex.StackTrace}");
+                    Utils.DebugWriteLine($"{ex.StackTrace}");
                 }
             }
-        }
-
-        private static bool? __isWin;
-        private static bool IsWin
-        {
-            get
-            {
-                if (__isWin == null)
-                {
-                    __isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-                }
-                return (bool)__isWin;
-            }
-        }
-
-        private static string __debugFilePath;
-        private static string DebugFilePath
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(__debugFilePath))
-                {
-                    __debugFilePath = Path.Combine(Environment.CurrentDirectory, "pty-terminal.debug");
-                }
-                return __debugFilePath;
-            }
-        }
-
-        private static void DebugWrite(string msg)
-        {
-            File.AppendAllText(DebugFilePath, msg, Encoding.UTF8);
-            // Console.Write(msg);
-            // Debug.Write(msg);
-        }
-
-        private static void DebugWriteLine(string msg = null)
-        {
-            DebugWrite((msg == null ? string.Empty : msg) + Environment.NewLine);
-            // Console.WriteLine(msg);
-            // Debug.WriteLine(msg);
         }
 
         private static void CopyInputToPipe(CancellationTokenSource cts, IPtyConnection terminal)
@@ -120,25 +74,25 @@ namespace PtyWeb
                         }
                         modifiers.Add(Enum.GetName(keyInfo.Key));
                         var code = (uint)keyInfo.Key;
-                        DebugWriteLine($"Key:[ {string.Join(" + ", modifiers)}], keyChar: {keyChar}, code: {code}({code.ToString("X")})");
+                        Utils.DebugWriteLine($"Key:[ {string.Join(" + ", modifiers)}], keyChar: {keyChar}, code: {code}({code.ToString("X")})");
                         if (keyChar == '\0')
                         {
                             // from: https://superuser.com/questions/248517/show-keys-pressed-in-linux/921637#921637
                             // 使用 Linux 程序 `shokey` 可显示按下的键, 命令 `showkey -a`, 退出命令快捷键 `Ctrl + D`
-                            DebugWriteLine($"IsWin: {IsWin}");
+                            Utils.DebugWriteLine($"IsWin: {Utils.IsWin}");
                             switch (keyInfo.Key)
                             {
                                 case ConsoleKey.LeftArrow:
-                                    writer.Write($"\x1b{(IsWin ? "\x5b" : "\x4f")}\x44"); // ^[[D、^[OD
+                                    writer.Write($"\x1b{(Utils.IsWin ? "\x5b" : "\x4f")}\x44"); // ^[[D、^[OD
                                     break;
                                 case ConsoleKey.UpArrow:
-                                    writer.Write($"\x1b{(IsWin ? "\x5b" : "\x4f")}\x41"); // ^[[A、^[OA
+                                    writer.Write($"\x1b{(Utils.IsWin ? "\x5b" : "\x4f")}\x41"); // ^[[A、^[OA
                                     break;
                                 case ConsoleKey.RightArrow:
-                                    writer.Write($"\x1b{(IsWin ? "\x5b" : "\x4f")}\x43"); // ^[[C、^[OC
+                                    writer.Write($"\x1b{(Utils.IsWin ? "\x5b" : "\x4f")}\x43"); // ^[[C、^[OC
                                     break;
                                 case ConsoleKey.DownArrow:
-                                    writer.Write($"\x1b{(IsWin ? "\x5b" : "\x4f")}\x42"); // ^[[B、^[OB
+                                    writer.Write($"\x1b{(Utils.IsWin ? "\x5b" : "\x4f")}\x42"); // ^[[B、^[OB
                                     break;
                                 case ConsoleKey.PageUp:
                                     writer.Write($"\x1b\x5b\x35\x7e"); // ^[[5~
@@ -153,10 +107,10 @@ namespace PtyWeb
                                     writer.Write($"\x1b\x5b\x33\x7e"); // ^[[3~
                                     break;
                                 case ConsoleKey.Home:
-                                    writer.Write($"\x1b{(IsWin ? '\x5b' : '\x4f')}\x48"); // ^[[H、^[OH
+                                    writer.Write($"\x1b{(Utils.IsWin ? '\x5b' : '\x4f')}\x48"); // ^[[H、^[OH
                                     break;
                                 case ConsoleKey.End:
-                                    writer.Write($"\x1b{(IsWin ? '\x5b' : '\x4f')}\x46"); // ^[[H、^[OF
+                                    writer.Write($"\x1b{(Utils.IsWin ? '\x5b' : '\x4f')}\x46"); // ^[[H、^[OF
                                     break;
                                 case ConsoleKey.F1:
                                     writer.Write($"\x1b\x4f\x50"); // ^[OP
@@ -211,7 +165,7 @@ namespace PtyWeb
             }
         }
 
-        public static async Task RealTerminal(string[] args)
+        public static async Task RealTerminal()
         {
             var cts = new CancellationTokenSource();
             var encoding = Utils.GetTerminalEncoding();
@@ -226,10 +180,9 @@ namespace PtyWeb
             */
             var cmd = Path.Combine(Environment.SystemDirectory, "cmd.exe");
             var powershell = Path.Combine(Environment.SystemDirectory, @"WindowsPowerShell\v1.0\powershell.exe");
-            var bash = @"D:\installed\msys64\usr\bin\bash.exe";
-            // var bash = @"/usr/bin/bash";
-            // string app = IsWin ? cmd : bash;
-            string app = bash;
+            // var bash = @"D:\installed\msys64\usr\bin\bash.exe";
+            var bash = @"/usr/bin/bash";
+            string app = Utils.IsWin ? cmd : bash;
             var options = new PtyOptions()
             {
                 Name = "Custom terminal",
@@ -237,7 +190,7 @@ namespace PtyWeb
                 Cols = Console.WindowWidth,
                 Cwd = Environment.CurrentDirectory,
                 App = app,
-                CommandLine = args,
+                CommandLine = Utils.IsWin ? new string[] { } : new string[] { "--bash" },
                 VerbatimCommandLine = false,
                 ForceWinPty = false,
                 Environment = new Dictionary<string, string>()
@@ -250,7 +203,7 @@ namespace PtyWeb
             IPtyConnection terminal = await PtyProvider.SpawnAsync(options, TimeoutToken);
             terminal.ProcessExited += (sender, e) =>
             {
-                DebugWriteLine($"ExitCode: {terminal.ExitCode}");
+                Utils.DebugWriteLine($"ExitCode: {terminal.ExitCode}");
                 cts.Cancel();
             };
 
@@ -322,7 +275,6 @@ namespace PtyWeb
             }
         }
 
-
         private static readonly int TestTimeoutMs = Debugger.IsAttached ? 300_000 : 5_000;
 
         private static CancellationToken TimeoutToken { get; } = new CancellationTokenSource(TestTimeoutMs).Token;
@@ -334,7 +286,7 @@ namespace PtyWeb
             var encoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
             const string Data = "abc✓ЖЖЖ①Ⅻㄨㄩ 啊阿鼾齄丂丄狚狛狜狝﨨﨩ˊˋ˙– ⿻〇㐀㐁䶴䶵";
 
-            string app = IsWin ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
+            string app = Utils.IsWin ? Path.Combine(Environment.SystemDirectory, "cmd.exe") : "sh";
             var options = new PtyOptions()
             {
                 Name = "Custom terminal",
@@ -377,7 +329,7 @@ namespace PtyWeb
                     firstOutput.TrySetResult(null);
 
                     output += encoding.GetString(buffer, 0, count);
-                    DebugWriteLine($"output: {output}");
+                    Utils.DebugWriteLine($"output: {output}");
                     output = output.Replace("\r", string.Empty).Replace("\n", string.Empty);
                     output = ansiRegex.Replace(output, string.Empty);
 
@@ -441,7 +393,7 @@ namespace PtyWeb
                     exitCode == 1 || // Pseudo Console exit code on Win 10.
                     exitCode == 0 // pty exit code on *nix.
                 );
-                DebugWriteLine($"result: {result}");
+                Utils.DebugWriteLine($"result: {result}");
             }
 
             terminal.WaitForExit(TestTimeoutMs);

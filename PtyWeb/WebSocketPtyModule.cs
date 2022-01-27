@@ -1,40 +1,49 @@
 ﻿using EmbedIO.WebSockets;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 
 namespace PtyWeb
 {
     public class WebSocketPtyModule : WebSocketModule
     {
+        private ConcurrentDictionary<string, WebTerminal> terminals;
+
         public WebSocketPtyModule(string urlPath, bool enableConnectionWatchdog = true) : base(urlPath, enableConnectionWatchdog)
         {
+            terminals = new ConcurrentDictionary<string, WebTerminal>();
+        }
+
+        public async Task Send2ClientAsync(IWebSocketContext context, byte[] data)
+        {
+            await SendAsync(context, data);
         }
 
         protected override Task OnMessageReceivedAsync(IWebSocketContext context, byte[] buffer, IWebSocketReceiveResult result)
         {
-            return SendToOthersAsync(context, Encoding.GetString(buffer));
+            if (terminals.TryGetValue(context.Id, out var terminal))
+            {
+                return terminal.SendDataAsync(buffer);
+            }
+            return Task.CompletedTask;
+            // return SendToOthersAsync(context, Encoding.GetString(buffer));
         }
 
         protected override Task OnClientConnectedAsync(IWebSocketContext context)
         {
-            // return base.OnClientConnectedAsync(context);
-            return Task.WhenAll(
-                base.OnClientConnectedAsync(context),
-                SendAsync(context, "Welcome to the chat room!"),
-                SendToOthersAsync(context, "Someone joined the chat room.")
-            );
+            if (terminals.TryAdd(context.Id, new WebTerminal(context, this)))
+            {
+                Task.Run(terminals[context.Id].Run, terminals[context.Id].CTS.Token);
+            }
+            return base.OnClientConnectedAsync(context);
         }
 
         protected override Task OnClientDisconnectedAsync(IWebSocketContext context)
         {
-            // return base.OnClientDisconnectedAsync(context);
-            return Task.WhenAll(
-                SendToOthersAsync(context, "Someone left the chat room."),
-                base.OnClientDisconnectedAsync(context)
-            );
+            if (terminals.TryRemove(context.Id, out var terminal))
+            {
+                terminal.CTS.Cancel();
+            }
+            return base.OnClientDisconnectedAsync(context);
         }
 
         private Task SendToOthersAsync(IWebSocketContext context, string payload)
