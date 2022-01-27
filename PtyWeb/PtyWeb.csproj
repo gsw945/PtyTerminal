@@ -13,4 +13,12 @@
     <ProjectReference Include="..\Pty.Net\Pty.Net.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="html\**">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+    </Content>
+  </ItemGroup>
+    
 </Project>
