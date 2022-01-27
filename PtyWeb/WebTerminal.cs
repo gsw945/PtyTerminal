@@ -51,7 +51,7 @@ namespace PtyWeb
                 Cols = Console.WindowWidth,
                 Cwd = Environment.CurrentDirectory,
                 App = app,
-                CommandLine = Utils.IsWin ? new string[] { } : new string[] { "--bash" },
+                CommandLine = Utils.IsWin ? new string[] { } : new string[] { "--login" },
                 VerbatimCommandLine = false,
                 ForceWinPty = false,
                 Environment = new Dictionary<string, string>()
