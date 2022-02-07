@@ -18,10 +18,28 @@ namespace PtyWeb
             await SendAsync(context, data);
         }
 
+        public async Task CloseClientAsync(IWebSocketContext context)
+        {
+            await CloseAsync(context);
+        }
+
         protected override Task OnMessageReceivedAsync(IWebSocketContext context, byte[] buffer, IWebSocketReceiveResult result)
         {
             if (terminals.TryGetValue(context.Id, out var terminal))
             {
+                if (result.MessageType == (int)System.Net.WebSockets.WebSocketMessageType.Text)
+                {
+                    // xterm-AttachAddon发送的数据均为 Text 类型
+                    // return terminal.SendDataAsync(buffer);
+                }
+                else if (result.MessageType == (int)System.Net.WebSockets.WebSocketMessageType.Binary)
+                {
+                    // Binary 类型为自定义指令
+                    // TODO: 指令解析
+                    // terminal.Resize(1, 2);
+                    // return Task.CompletedTask;
+                    // return terminal.SendDataAsync(buffer);
+                }
                 return terminal.SendDataAsync(buffer);
             }
             return Task.CompletedTask;

@@ -16,9 +16,19 @@
     <!-- <link rel="icon" href="data:;base64,AA==" /> -->
     <link href="https://lf9-cdn-tos.bytecdntp.com/cdn/expire-1-M/xterm/4.11.0/xterm.css" type="text/css" rel="stylesheet" />
     <style type="text/css">
-        div#terminal {
-            width: 500px;
-            height: 300px;
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            background-color: #fff;
+        }
+        body {
+            margin: 8px;
+        }
+        div#terminal-container {
+            height: calc(100vh - 16px);
+            width: calc(100vw - 16px);
         }
     </style>
 </head>
@@ -113,10 +123,146 @@
     <script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/xterm/4.11.0/addons/webgl/xterm-addon-webgl.js" type="text/javascript"></script>
     <!-- logic -->
     <script type="text/javascript">
+        /**
+         * 处理字符串(前后trim掉指定的字符)
+         * @param {string} str 需要处理的字符串
+         * @param {char} char2Remove 需要移除的字符
+         * @returns 处理后的字符串: string
+         */
+        function TrimChar(str, char2Remove) {
+            while (str.charAt(0) == char2Remove) {
+                str = str.substring(1);
+            }
+            while (str.charAt(str.length - 1) == char2Remove) {
+                str = str.substring(0, str.length - 1);
+            }
+            return str;
+        }
+
+        /**
+         * utf.js - UTF-8 <=> UTF-16 convertion
+         *
+         * Copyright (C) 1999 Masanao Izumo <iz@onicos.co.jp>
+         * Version: 1.0
+         * LastModified: Dec 25 1999
+         * This library is free.  You can redistribute it and/or modify it.
+         * from: https://stackoverflow.com/questions/8936984/uint8array-to-string-in-javascript/22373197#22373197
+         */
+        function Utf8ArrayToStr(array) {
+            var out, i, len, c;
+            var char2, char3;
+
+            out = '';
+            len = array.length;
+            i = 0;
+            while (i < len) {
+                c = array[i++];
+                switch (c >> 4) {
+                    case 0:
+                    case 1:
+                    case 2:
+                    case 3:
+                    case 4:
+                    case 5:
+                    case 6:
+                    case 7:
+                        // 0xxxxxxx
+                        out += String.fromCharCode(c);
+                        break;
+                    case 12:
+                    case 13:
+                        // 110x xxxx   10xx xxxx
+                        char2 = array[i++];
+                        out += String.fromCharCode(((c & 0x1f) << 6) | (char2 & 0x3f));
+                        break;
+                    case 14:
+                        // 1110 xxxx  10xx xxxx  10xx xxxx
+                        char2 = array[i++];
+                        char3 = array[i++];
+                        out += String.fromCharCode(
+                            ((c & 0x0f) << 12) | ((char2 & 0x3f) << 6) | ((char3 & 0x3f) << 0),
+                        );
+                        break;
+                    default:
+                        console.warn(c);
+                        break;
+                }
+            }
+            return out;
+        }
+
+        function BinaryArray2JSON(binArray) {
+            /*
+            // 方案一(存在中文乱码问题)
+            var str = ""
+            for (var i = 0 i < binArray.length i++) {
+                str += String.fromCharCode(parseInt(binArray[i]))
+            }
+            */
+            // 方案二
+            var str = Utf8ArrayToStr(binArray);
+            try {
+                return JSON.parse(str);
+            } catch (e) {
+                console.log(e);
+                return str;
+            }
+        }
+
+        function JSON2Array(json) {
+            var str = JSON.stringify(json, null, 0);
+            var arr = [];
+            for (var i = 0; i < str.length; i++) {
+                var code = str.charCodeAt(i);
+                var encoded = encodeURIComponent(str[i]);
+                if (encoded.indexOf('%') >= 0) {
+                    encoded = TrimChar(encoded, '%');
+                    var codeList = encoded.split('%').map(item => parseInt(item, 16));
+                    for (var j = 0; j < codeList.length; j++) {
+                        arr.push(codeList[j]);
+                    }
+                } else {
+                    arr.push(code);
+                }
+            }
+            var ret = new Uint8Array(arr);
+            return ret.buffer;
+        }
+
+        /**
+         * 准备数据
+         * @param {object} data 需要发送的数据
+         * @param {boolean} isBinary WebSocket消息是否采用二进制[Binary]方式(否则为文本[Text]模式)
+         * @returns 二进制通信: Uint8Array，文本通信: string
+         */
+        function prepareData(data, isBinary) {
+            if (!data) {
+                return '';
+            }
+            if (data instanceof String) {
+                return data;
+            } else {
+                return isBinary ? JSON2Array(data) : JSON.stringify(data, null, 0);
+            }
+        }
+
         docReady(function () {
             console.log('hello pty');
 
             // ref: https://xtermjs.org/docs/api/addons/attach/
+            /*
+            var term = new Terminal({
+                cols: 80, // 列数
+                rows: 30, // 行数
+                cursorBlink: true, // 光标闪烁
+                cursorStyle: 'underline',  // 光标样式(block、underline、bar)
+                rendererType: 'canvas', // 渲染器类型
+                theme: {
+                    background: 'darkslategray',
+                    foreground: 'orange'
+                }
+            });
+            */
             var term = new Terminal();
             // Open the terminal in #terminal-container
             term.open(document.getElementById('terminal-container'), true);
@@ -133,12 +279,14 @@
             // Create WebSocket connection.
             var socket = new WebSocket(url);
 
+            var attachAddon = null;
+
             // Connection opened
             socket.addEventListener('open', function (event) {
                 // socket.send('Hello Server!');
                 console.log('[ws-client]: <connected>');
 
-                var attachAddon = new AttachAddon.AttachAddon(socket);
+                attachAddon = new AttachAddon.AttachAddon(socket);
                 // Attach the socket to term
                 term.loadAddon(attachAddon);
             });
@@ -146,6 +294,36 @@
             // Listen for messages
             socket.addEventListener('message', function (event) {
                 console.log('[ws-server]:', event.data);
+            });
+
+            // Connection closed
+            socket.addEventListener('close', function (event) {
+                attachAddon.dispose();
+                console.log(event);
+                alert('closed');
+            });
+
+            // socket error
+            socket.addEventListener('error', function (event) {
+                console.log(event);
+                alert('error');
+            });
+
+            /*
+            term.onResize(function (size) {
+                // socket.send('resize', [size.cols, size.rows]);
+                console.log('size:', size);
+                term.scrollToBottom();
+                if (socket.readyState === WebSocket.OPEN) {
+                    ;
+                }
+            });
+            */
+
+            window.addEventListener('resize', function (event) {
+                fitAddon.fit();
+                // console.log(`term: ${term.cols}x${term.rows}`);
+                // console.log(`inner: ${window.innerWidth}x${window.innerHeight}; outer: ${window.outerWidth}x ${window.outerHeight}`);
             });
         });
     </script>

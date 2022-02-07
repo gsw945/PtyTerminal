@@ -36,6 +36,11 @@ namespace PtyWeb
             }
         }
 
+        public void Resize(int cols, int rows)
+        {
+            terminal.Resize(cols, rows);
+        }
+
         public async Task Run()
         {
             Console.OutputEncoding = Encoding.UTF8;
@@ -76,6 +81,7 @@ namespace PtyWeb
             {
                 terminal.WaitForExit(milliseconds: 1500);
             }
+            await OWNER.CloseClientAsync(WS_CTX);
         }
 
         private async Task CopyOutputToPipeAsync(IPtyConnection terminal)
@@ -93,7 +99,12 @@ namespace PtyWeb
             while (!CTS.Token.IsCancellationRequested)
             {
                 var buffer = new byte[4096];
-                int count = await terminal.ReaderStream.ReadAsync(buffer, 0, buffer.Length, CTS.Token);
+                var readTask = terminal.ReaderStream.ReadAsync(buffer, 0, buffer.Length, CTS.Token);
+                await await Task.WhenAny(
+                    readTask,
+                    Task.Delay(TimeSpan.FromMilliseconds(1500), CTS.Token)
+                );
+                int count = await readTask;
                 if (count == 0)
                 {
                     continue;
