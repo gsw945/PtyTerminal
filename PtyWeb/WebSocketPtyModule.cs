@@ -1,5 +1,8 @@
 ﻿using EmbedIO.WebSockets;
+using Swan.Formatters;
+using Swan.Logging;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace PtyWeb
@@ -27,19 +30,41 @@ namespace PtyWeb
         {
             if (terminals.TryGetValue(context.Id, out var terminal))
             {
-                if (result.MessageType == (int)System.Net.WebSockets.WebSocketMessageType.Text)
-                {
-                    // xterm-AttachAddon发送的数据均为 Text 类型
-                    // return terminal.SendDataAsync(buffer);
-                }
-                else if (result.MessageType == (int)System.Net.WebSockets.WebSocketMessageType.Binary)
+                if (result.MessageType == (int)System.Net.WebSockets.WebSocketMessageType.Binary)
                 {
                     // Binary 类型为自定义指令
-                    // TODO: 指令解析
-                    // terminal.Resize(1, 2);
-                    // return Task.CompletedTask;
-                    // return terminal.SendDataAsync(buffer);
+                    try
+                    {
+                        // 指令解析
+                        var strData = System.Text.Encoding.UTF8.GetString(buffer);
+                        var ptyWebAction = Json.Deserialize<PtyWebAction<Dictionary<string, int>>>(strData);
+                        if (ptyWebAction != null)
+                        {
+                            switch (ptyWebAction.action)
+                            {
+                                case PtyWebAction<Dictionary<string, int>>.ActionType.resize:
+                                    if (
+                                        ptyWebAction.data.TryGetValue("cols", out var cols) &&
+                                        ptyWebAction.data.TryGetValue("rows", out var rows) &&
+                                        cols > 0 && rows > 0 &&
+                                        cols < 999 && rows < 999
+                                    )
+                                    {
+                                        terminal.Resize(cols, rows);
+                                    }
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                    }
+                    catch (System.Exception ex)
+                    {
+                        ex.Debug(nameof(WebSocketPtyModule), ex.Message);
+                    }
+                    return Task.CompletedTask;
                 }
+                // xterm-AttachAddon发送的数据
                 return terminal.SendDataAsync(buffer);
             }
             return Task.CompletedTask;

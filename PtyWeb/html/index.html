@@ -22,13 +22,14 @@
             padding: 0;
             border: 0;
             background-color: #fff;
+            overflow: hidden;
         }
         body {
-            margin: 8px;
+            margin: 2px;
         }
         div#terminal-container {
-            height: calc(100vh - 16px);
-            width: calc(100vw - 16px);
+            height: calc(100vh - 4px);
+            width: calc(100vw - 4px);
         }
     </style>
 </head>
@@ -261,11 +262,15 @@
                     foreground: 'orange'
                 }
             });
-            // Open the terminal in #terminal-container
-            term.open(document.getElementById('terminal-container'), true);
 
+            // 自适应插件
             var fitAddon = new FitAddon.FitAddon();
             term.loadAddon(fitAddon);
+
+            // Open the terminal in #terminal-container
+            term.open(document.getElementById('terminal-container'), true);
+            term.focus();
+
             // Make the terminal's size and geometry fit the size of #terminal-container
             fitAddon.fit();
 
@@ -314,9 +319,17 @@
 
             // 终端尺寸改变回调
             term.onResize(function (size) {
-                // socket.send('resize', [size.cols, size.rows]);
                 console.log('size:', size);
-                term.refresh(0, size.rows - 1);
+                if (socket.readyState === WebSocket.OPEN) {
+                    // socket.send('resize', [size.cols, size.rows]);
+                    socket.send(prepareData({
+                        action: 'resize',
+                        data: {
+                            cols: size.cols,
+                            rows: size.rows
+                        }
+                    }, true));
+                }
             });
 
             window.addEventListener('resize', function (event) {
