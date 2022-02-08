@@ -249,8 +249,7 @@
         docReady(function () {
             console.log('hello pty');
 
-            // ref: https://xtermjs.org/docs/api/addons/attach/
-            /*
+            // ref: https://xtermjs.org/js/demo.js
             var term = new Terminal({
                 cols: 80, // 列数
                 rows: 30, // 行数
@@ -262,8 +261,6 @@
                     foreground: 'orange'
                 }
             });
-            */
-            var term = new Terminal();
             // Open the terminal in #terminal-container
             term.open(document.getElementById('terminal-container'), true);
 
@@ -279,6 +276,7 @@
             // Create WebSocket connection.
             var socket = new WebSocket(url);
 
+            // ref: https://xtermjs.org/docs/api/addons/attach/
             var attachAddon = null;
 
             // Connection opened
@@ -298,7 +296,6 @@
 
             // Connection closed
             socket.addEventListener('close', function (event) {
-                attachAddon.dispose();
                 console.log(event);
                 alert('closed');
             });
@@ -309,16 +306,18 @@
                 alert('error');
             });
 
-            /*
+            // 控制键盘按键是否被xterm捕获
+            term.attachCustomKeyEventHandler(function (event) {
+                // 只有当WebSocket连接后才允许xterm捕获按键
+                return socket.readyState === WebSocket.OPEN;
+            });
+
+            // 终端尺寸改变回调
             term.onResize(function (size) {
                 // socket.send('resize', [size.cols, size.rows]);
                 console.log('size:', size);
-                term.scrollToBottom();
-                if (socket.readyState === WebSocket.OPEN) {
-                    ;
-                }
+                term.refresh(0, size.rows - 1);
             });
-            */
 
             window.addEventListener('resize', function (event) {
                 fitAddon.fit();
