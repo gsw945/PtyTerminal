@@ -38,13 +38,6 @@ namespace PtyWeb
 
         public void Resize(int cols, int rows)
         {
-            if (Utils.IsWin)
-            {
-#pragma warning disable CA1416 // 验证平台兼容性
-                Console.WindowWidth = cols;
-                Console.WindowHeight = rows;
-#pragma warning restore CA1416 // 验证平台兼容性
-            }
             terminal.Resize(cols, rows);
         }
 
