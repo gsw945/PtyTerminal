@@ -292,6 +292,10 @@
                 attachAddon = new AttachAddon.AttachAddon(socket);
                 // Attach the socket to term
                 term.loadAddon(attachAddon);
+
+                setTimeout(function () {
+                    resizeNotify(term.cols, term.rows);
+                }, 200);
             });
 
             // Listen for messages
@@ -317,19 +321,27 @@
                 return socket.readyState === WebSocket.OPEN;
             });
 
-            // 终端尺寸改变回调
-            term.onResize(function (size) {
-                console.log('size:', size);
+            /**
+             * 通知服务器修改pty终端尺寸
+             * @param cols
+             * @param rows
+             */
+            function resizeNotify(cols, rows) {
                 if (socket.readyState === WebSocket.OPEN) {
-                    // socket.send('resize', [size.cols, size.rows]);
                     socket.send(prepareData({
                         action: 'resize',
                         data: {
-                            cols: size.cols,
-                            rows: size.rows
+                            cols: cols,
+                            rows: rows
                         }
                     }, true));
                 }
+            }
+
+            // 终端尺寸改变回调
+            term.onResize(function (size) {
+                console.log('size:', size);
+                resizeNotify(size.cols, size.rows);
             });
 
             window.addEventListener('resize', function (event) {

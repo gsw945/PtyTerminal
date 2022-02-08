@@ -43,14 +43,17 @@ namespace PtyWeb
                             switch (ptyWebAction.action)
                             {
                                 case PtyWebAction<Dictionary<string, int>>.ActionType.resize:
-                                    if (
-                                        ptyWebAction.data.TryGetValue("cols", out var cols) &&
-                                        ptyWebAction.data.TryGetValue("rows", out var rows) &&
-                                        cols > 0 && rows > 0 &&
-                                        cols < 999 && rows < 999
-                                    )
                                     {
-                                        terminal.Resize(cols, rows);
+                                        // refer: https://stackoverflow.com/questions/15099523/changing-console-windows-size-throws-argumentoutofrangeexception/15099723#15099723
+                                        if (
+                                            ptyWebAction.data.TryGetValue("cols", out var cols) &&
+                                            ptyWebAction.data.TryGetValue("rows", out var rows) &&
+                                            cols > 0 && rows > 0 &&
+                                            cols <= System.Console.LargestWindowWidth && rows < System.Console.LargestWindowHeight
+                                        )
+                                        {
+                                            terminal.Resize(cols, rows);
+                                        }
                                     }
                                     break;
                                 default:
