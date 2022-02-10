@@ -293,9 +293,12 @@
                 // Attach the socket to term
                 term.loadAddon(attachAddon);
 
-                setTimeout(function () {
-                    resizeNotify(term.cols, term.rows);
-                }, 200);
+                // 限制上报频率
+                notifyInterval = setInterval(function () {
+                    if (newestSize[0] != latestNotifySize[0] || newestSize[1] != latestNotifySize[1]) {
+                        resizeNotify(newestSize[0], newestSize[1]);
+                    }
+                }, 333);
             });
 
             // Listen for messages
@@ -306,12 +309,20 @@
             // Connection closed
             socket.addEventListener('close', function (event) {
                 console.log(event);
+                if (notifyInterval !== null) {
+                    clearInterval(notifyInterval);
+                    notifyInterval = null;
+                }
                 alert('closed');
             });
 
             // socket error
             socket.addEventListener('error', function (event) {
                 console.log(event);
+                if (notifyInterval !== null) {
+                    clearInterval(notifyInterval);
+                    notifyInterval = null;
+                }
                 alert('error');
             });
 
@@ -321,6 +332,13 @@
                 return socket.readyState === WebSocket.OPEN;
             });
 
+            // size上报interval
+            var notifyInterval = null;
+            // 最新上报的size
+            var latestNotifySize = [0, 0];
+            // 最新变化的size
+            var newestSize = [term.cols, term.rows];
+
             /**
              * 通知服务器修改pty终端尺寸
              * @param cols
@@ -328,6 +346,7 @@
              */
             function resizeNotify(cols, rows) {
                 if (socket.readyState === WebSocket.OPEN) {
+                    latestNotifySize = [cols, rows];
                     socket.send(prepareData({
                         action: 'resize',
                         data: {
@@ -341,7 +360,7 @@
             // 终端尺寸改变回调
             term.onResize(function (size) {
                 console.log('size:', size);
-                resizeNotify(size.cols, size.rows);
+                newestSize = [size.cols, size.rows];
             });
 
             window.addEventListener('resize', function (event) {
