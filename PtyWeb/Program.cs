@@ -43,7 +43,12 @@ namespace PtyWeb
         {
             get
             {
-                var assemblyPath = Path.GetDirectoryName(typeof(Program).Assembly.Location);
+                var assemblyLocation = typeof(Program).Assembly.Location;
+                if (string.IsNullOrEmpty(assemblyLocation))
+                {
+                    assemblyLocation = Process.GetCurrentProcess().MainModule.FileName;
+                }
+                var assemblyPath = Path.GetDirectoryName(assemblyLocation);
 
 #if DEBUG
                 return Path.Combine(Directory.GetParent(assemblyPath).Parent.Parent.FullName, "html");
