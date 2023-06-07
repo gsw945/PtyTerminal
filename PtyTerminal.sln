@@ -13,6 +13,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决�
 		README_zh.md = README_zh.md
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "assets", "assets", "{A80A77E7-79FA-4F03-BB66-E60FFB4FDD4E}"
+	ProjectSection(SolutionItems) = preProject
+		assets\console-demo.png = assets\console-demo.png
+		assets\web-demo-01.png = assets\web-demo-01.png
+		assets\web-demo-02.png = assets\web-demo-02.png
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -30,6 +37,9 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{A80A77E7-79FA-4F03-BB66-E60FFB4FDD4E} = {C434AD4D-24EA-4737-A353-DAC3434708F1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {8FA1E6C0-31A6-4F8E-BFB6-6AE90721F923}

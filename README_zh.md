@@ -12,25 +12,28 @@
     - 接口在 MacOs 上由 `libSystem.dylib` 提供
 #### **PtyWeb**
 - **CliDemo** Pty.Net 在控制台中使用示例
+![console-demo.png](./assets/console-demo.png)
 - **WebDemo** Pty.Net 在 Web 中的使用示例, 通过 [EmbedIO](https://github.com/unosquare/embedio) 和 [Xterm.js](https://github.com/xtermjs/xterm.js/) 实现
-    - TODO: 使用 [ASP.NET Core 中的 WebSocket 支持](https://learn.microsoft.com/zh-cn/aspnet/core/fundamentals/websockets) 替换 EmbedIO
+![web-demo-01.png](./assets/web-demo-01.png)
+![web-demo-02.png](./assets/web-demo-02.png)
 
-
-修改 `Program.cs` 以切换要运行哪一个Demo:
-```csharp
-namespace PtyWeb
-{
-    class Program
+## 提示
+- 修改 `Program.cs` 以切换要运行哪一个Demo:
+    ```csharp
+    namespace PtyWeb
     {
-        static void Main(string[] args)
+        class Program
         {
-            CliDemo.Run(); // Console demo
+            static void Main(string[] args)
+            {
+                CliDemo.Run(); // Console demo
 
-            // WebDemo.Run(args); // Web demo
+                // WebDemo.Run(args); // Web demo
+            }
         }
     }
-}
-```
+    ```
+- TODO: WebDemo - 使用 [ASP.NET Core 中的 WebSocket 支持](https://learn.microsoft.com/zh-cn/aspnet/core/fundamentals/websockets) 替换 EmbedIO
 
 ## 参考
 - [Windows 命令行：介绍 Windows 伪终端 (ConPTY)](https://devblogs.microsoft.com/commandline/windows-command-line-introducing-the-windows-pseudo-console-conpty/)
@@ -38,4 +41,8 @@ namespace PtyWeb
 - Github: [microsoft/terminal](https://github.com/microsoft/terminal)
     - [src/winconpty](https://github.com/microsoft/terminal/tree/main/src/winconpty)
     - [samples/ConPTY](https://github.com/microsoft/terminal/tree/main/samples/ConPTY)
+- Github: [unosquare/embedio](https://github.com/unosquare/embedio)
+    - [EmbedIO - WebSockets Example](https://unosquare.github.io/embedio/#websockets-example)
+- Github: [xtermjs/xterm.js](https://github.com/xtermjs/xterm.js)
+    - [XTERM.JS - Addons/attach](https://xtermjs.org/docs/api/addons/attach/)
 - [平台调用服务 (Platform Invocation Services)](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke), 简称 `P/Invoke`

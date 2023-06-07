@@ -4,9 +4,9 @@
     {
         static void Main(string[] args)
         {
-            CliDemo.Run();
+            // CliDemo.Run();
 
-            // WebDemo.Run(args);
+            WebDemo.Run(args);
         }
     }
 }
