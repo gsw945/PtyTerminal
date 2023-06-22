@@ -7,7 +7,7 @@ cross platform [Pseudo Terminal (PTY)](https://en.wikipedia.org/wiki/Pseudotermi
 ## Projects
 #### **Pty.Net**  cross platform [Pseudo Terminal (PTY)](https://en.wikipedia.org/wiki/Pseudoterminal) Library in .NET(C#)
 - Compatibility with `ConPTY` and `winpty` on Windows Platform
-- P/Invoke APIs (`forkpty``ioctl``kill` ...) on Unix Platforms
+- P/Invoke APIs (`forkpty` `ioctl` `kill` ...) on Unix Platforms
     - APIs provided by `libc.so.6` and `libutil.so.1` for Linux
     - APIs provided by `libSystem.dylib` for MacOs
 #### **PtyWeb**
