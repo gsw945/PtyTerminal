@@ -1,24 +1,24 @@
 ## PtyTerminal
 
-[English](./README_zh.md) | **¼òÌåÖĞÎÄ**
+[English](./README.md) | **ç®€ä½“ä¸­æ–‡**
 
-.NET(C#) ¿çÆ½Ì¨µÄ [Î±ÖÕ¶Ë](https://baike.baidu.com/item/%E4%BC%AA%E7%BB%88%E7%AB%AF/6247439) ¿â, ¼°ÆäÊ¹ÓÃÊ¾Àı
+.NET(C#) è·¨å¹³å°çš„ [ä¼ªç»ˆç«¯](https://baike.baidu.com/item/%E4%BC%AA%E7%BB%88%E7%AB%AF/6247439) åº“, åŠå…¶ä½¿ç”¨ç¤ºä¾‹
 
-## ÏîÄ¿
-#### **Pty.Net** .NET(C#) ¿çÆ½Ì¨µÄ [Î±ÖÕ¶Ë](https://baike.baidu.com/item/%E4%BC%AA%E7%BB%88%E7%AB%AF/6247439) ¿â
-- Windows Æ½Ì¨ÉÏ¼æÈİ `ConPTY` ºÍ `winpty`
-- ÔÚ Unix Æ½Ì¨ÉÏÍ¨¹ıÆ½Ì¨·şÎñµ÷ÓÃ()½Ó¿Ú (`forkpty`¡¢`ioctl`¡¢`kill` µÈ)ÊµÏÖ
-    - ½Ó¿ÚÔÚ Linux ÉÏÓÉ `libc.so.6` ºÍ `libutil.so.1` Ìá¹©
-    - ½Ó¿ÚÔÚ MacOs ÉÏÓÉ `libSystem.dylib` Ìá¹©
+## é¡¹ç›®
+#### **Pty.Net** .NET(C#) è·¨å¹³å°çš„ [ä¼ªç»ˆç«¯](https://baike.baidu.com/item/%E4%BC%AA%E7%BB%88%E7%AB%AF/6247439) åº“
+- Windows å¹³å°ä¸Šå…¼å®¹ `ConPTY` å’Œ `winpty`
+- åœ¨ Unix å¹³å°ä¸Šé€šè¿‡å¹³å°æœåŠ¡è°ƒç”¨()æ¥å£ (`forkpty`ã€`ioctl`ã€`kill` ç­‰)å®ç°
+    - æ¥å£åœ¨ Linux ä¸Šç”± `libc.so.6` å’Œ `libutil.so.1` æä¾›
+    - æ¥å£åœ¨ MacOs ä¸Šç”± `libSystem.dylib` æä¾›
 #### **PtyWeb**
-- **CliDemo** Pty.Net ÔÚ¿ØÖÆÌ¨ÖĞÊ¹ÓÃÊ¾Àı
+- **CliDemo** Pty.Net åœ¨æ§åˆ¶å°ä¸­ä½¿ç”¨ç¤ºä¾‹
 ![console-demo.png](./assets/console-demo.png)
-- **WebDemo** Pty.Net ÔÚ Web ÖĞµÄÊ¹ÓÃÊ¾Àı, Í¨¹ı [EmbedIO](https://github.com/unosquare/embedio) ºÍ [Xterm.js](https://github.com/xtermjs/xterm.js/) ÊµÏÖ
+- **WebDemo** Pty.Net åœ¨ Web ä¸­çš„ä½¿ç”¨ç¤ºä¾‹, é€šè¿‡ [EmbedIO](https://github.com/unosquare/embedio) å’Œ [Xterm.js](https://github.com/xtermjs/xterm.js/) å®ç°
 ![web-demo-01.png](./assets/web-demo-01.png)
 ![web-demo-02.png](./assets/web-demo-02.png)
 
-## ÌáÊ¾
-- ĞŞ¸Ä `Program.cs` ÒÔÇĞ»»ÒªÔËĞĞÄÄÒ»¸öDemo:
+## æç¤º
+- ä¿®æ”¹ `Program.cs` ä»¥åˆ‡æ¢è¦è¿è¡Œå“ªä¸€ä¸ªDemo:
     ```csharp
     namespace PtyWeb
     {
@@ -33,10 +33,10 @@
         }
     }
     ```
-- TODO: WebDemo - Ê¹ÓÃ [ASP.NET Core ÖĞµÄ WebSocket Ö§³Ö](https://learn.microsoft.com/zh-cn/aspnet/core/fundamentals/websockets) Ìæ»» EmbedIO
+- TODO: WebDemo - ä½¿ç”¨ [ASP.NET Core ä¸­çš„ WebSocket æ”¯æŒ](https://learn.microsoft.com/zh-cn/aspnet/core/fundamentals/websockets) æ›¿æ¢ EmbedIO
 
-## ²Î¿¼
-- [Windows ÃüÁîĞĞ£º½éÉÜ Windows Î±ÖÕ¶Ë (ConPTY)](https://devblogs.microsoft.com/commandline/windows-command-line-introducing-the-windows-pseudo-console-conpty/)
+## å‚è€ƒ
+- [Windows å‘½ä»¤è¡Œï¼šä»‹ç» Windows ä¼ªç»ˆç«¯ (ConPTY)](https://devblogs.microsoft.com/commandline/windows-command-line-introducing-the-windows-pseudo-console-conpty/)
 - Github: [rprichard/winpty](https://github.com/rprichard/winpty)
 - Github: [microsoft/terminal](https://github.com/microsoft/terminal)
     - [src/winconpty](https://github.com/microsoft/terminal/tree/main/src/winconpty)
@@ -45,4 +45,4 @@
     - [EmbedIO - WebSockets Example](https://unosquare.github.io/embedio/#websockets-example)
 - Github: [xtermjs/xterm.js](https://github.com/xtermjs/xterm.js)
     - [XTERM.JS - Addons/attach](https://xtermjs.org/docs/api/addons/attach/)
-- [Æ½Ì¨µ÷ÓÃ·şÎñ (Platform Invocation Services)](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke), ¼ò³Æ `P/Invoke`
+- [å¹³å°è°ƒç”¨æœåŠ¡ (Platform Invocation Services)](https://learn.microsoft.com/en-us/dotnet/standard/native-interop/pinvoke), ç®€ç§° `P/Invoke`

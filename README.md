@@ -1,13 +1,13 @@
 ## PtyTerminal
 
-**English** | [¼òÌåÖÐÎÄ](./README_zh.md)
+**English** | [ç®€ä½“ä¸­æ–‡](./README_zh.md)
 
 cross platform [Pseudo Terminal (PTY)](https://en.wikipedia.org/wiki/Pseudoterminal) Library and Usage Demos in .NET(C#)
 
 ## Projects
 #### **Pty.Net**  cross platform [Pseudo Terminal (PTY)](https://en.wikipedia.org/wiki/Pseudoterminal) Library in .NET(C#)
 - Compatibility with `ConPTY` and `winpty` on Windows Platform
-- P/Invoke APIs (`forkpty`¡¢`ioctl`¡¢`kill` ...) on Unix Platforms
+- P/Invoke APIs (`forkpty``ioctl``kill` ...) on Unix Platforms
     - APIs provided by `libc.so.6` and `libutil.so.1` for Linux
     - APIs provided by `libSystem.dylib` for MacOs
 #### **PtyWeb**
