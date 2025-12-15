@@ -1,4 +1,6 @@
-## PtyTerminal
+[![PTY](https://img.shields.io/nuget/v/PTY.svg)](https://www.nuget.org/packages/PTY/)
+
+# PtyTerminal
 
 **English** | [简体中文](./README_zh.md)
 
