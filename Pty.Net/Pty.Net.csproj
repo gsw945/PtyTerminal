@@ -15,6 +15,7 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <ProduceReferenceAssembly>True</ProduceReferenceAssembly>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Version>1.0.1</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -29,11 +30,23 @@
 	  <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 	</Content>
 	-->
-	<Content Include="deps\**">
+  <Content Include="deps\**" Exclude="deps\**\*.pdb">
 	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  <CopyToPublishDirectory>Always</CopyToPublishDirectory>
 	  <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 	</Content>
   </ItemGroup>
+
+  <!-- NuGet.org 符号包校验：snupkg 里的每个 PDB 都必须能在 nupkg 的 lib/ref 中找到同名 DLL。
+       deps 下的 native PDB（如 conptylib.pdb，仅有 .lib 无 .dll）会导致 symbols 发布失败。
+       即使项目已 Exclude 掉 pdb，旧的输出目录残留也可能被打进 snupkg，因此在 Pack 前强制清理。 -->
+  <Target Name="DeleteNativePdbsBeforePack" BeforeTargets="Pack">
+    <ItemGroup>
+      <_NativePdbsToDelete Include="$(TargetDir)deps\**\*.pdb" />
+      <_NativePdbsToDelete Include="$(BaseIntermediateOutputPath)\**\*.pdb" Condition="false" />
+    </ItemGroup>
+    <Message Importance="High" Text="Deleting native PDBs from output before packing: @(_NativePdbsToDelete)" Condition="'@(_NativePdbsToDelete)' != ''" />
+    <Delete Files="@(_NativePdbsToDelete)" />
+  </Target>
 
 </Project>
