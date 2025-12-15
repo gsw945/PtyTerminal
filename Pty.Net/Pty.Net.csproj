@@ -8,6 +8,7 @@
     <RepositoryUrl>https://github.com/gsw945/PtyTerminal</RepositoryUrl>
     <IncludeSymbols>True</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+	<DebugType>portable</DebugType>
     <PackageProjectUrl>https://github.com/gsw945/PtyTerminal</PackageProjectUrl>
     <PackageId>PTY</PackageId>
     <SignAssembly>True</SignAssembly>
