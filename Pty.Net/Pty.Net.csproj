@@ -1,11 +1,22 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>Cross Platform Pseudo Terminal (PTY) for .NET</Title>
+    <Authors>gsw945</Authors>
+    <RepositoryUrl>https://github.com/gsw945/PtyTerminal</RepositoryUrl>
+    <IncludeSymbols>True</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PackageProjectUrl>https://github.com/gsw945/PtyTerminal</PackageProjectUrl>
+    <PackageId>PTY</PackageId>
+    <SignAssembly>True</SignAssembly>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <ProduceReferenceAssembly>True</ProduceReferenceAssembly>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <NoWarn>1701;1702;8632;SYSLIB0004</NoWarn>
+    <NoWarn>1701;1702;8632;SYSLIB0004;NU5100</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
