@@ -1,0 +1,1 @@
+call powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0nuget-verify.ps1" -Mode Full

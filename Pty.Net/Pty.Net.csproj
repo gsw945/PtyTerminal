@@ -15,7 +15,7 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <ProduceReferenceAssembly>True</ProduceReferenceAssembly>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -30,11 +30,20 @@
 	  <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 	</Content>
 	-->
-  <Content Include="deps\**" Exclude="deps\**\*.pdb">
+  <Content Include="deps\**\*.*" Exclude="deps\**\*.pdb;deps\**\*.lib;deps\**\*.exp">
 	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  <CopyToPublishDirectory>Always</CopyToPublishDirectory>
 	  <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
 	</Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      NuGet 引用方默认不会把 content/contentFiles 复制到输出目录。
+      通过 buildTransitive 注入 targets，把包内 content/deps 复制到引用方 bin/publish 的 deps 目录。
+    -->
+    <None Include="buildTransitive\PTY.targets" Pack="true" PackagePath="buildTransitive\PTY.targets" />
+    <None Include="build\PTY.targets" Pack="true" PackagePath="build\PTY.targets" />
   </ItemGroup>
 
   <!-- NuGet.org 符号包校验：snupkg 里的每个 PDB 都必须能在 nupkg 的 lib/ref 中找到同名 DLL。

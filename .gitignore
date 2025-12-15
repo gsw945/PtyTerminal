@@ -4,3 +4,5 @@
 pty-terminal.debug
 */Properties/
 *.user
+NupkgVerify/NupkgVerify.csproj
+NupkgVerify/Program.cs

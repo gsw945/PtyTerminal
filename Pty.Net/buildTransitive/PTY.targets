@@ -1,0 +1,33 @@
+<Project>
+  <!--
+    PTY NuGet 运行时依赖拷贝规则
+
+    背景：库代码用 [DllImport("deps\\...")] 这种相对路径加载 native DLL。
+    NuGet 的 content/contentFiles 默认不会自动复制到引用项目的输出目录，导致运行时找不到 deps\...\*.dll。
+
+    方案：通过 buildTransitive targets，在引用项目 Build/Publish 后把包内 content/deps/** 复制到输出目录的 deps/**。
+  -->
+
+  <PropertyGroup>
+    <_PtyPackageRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\'))</_PtyPackageRoot>
+    <_PtyDepsSourceDir>$(_PtyPackageRoot)content\deps\</_PtyDepsSourceDir>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <_PtyDepsFiles Include="$(_PtyDepsSourceDir)**\*.*" />
+  </ItemGroup>
+
+  <Target Name="_PtyCopyDepsToOutput" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT' and Exists('$(_PtyDepsSourceDir)')">
+    <Copy
+      SourceFiles="@(_PtyDepsFiles)"
+      DestinationFiles="@(_PtyDepsFiles->'$(TargetDir)deps\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="_PtyCopyDepsToPublish" AfterTargets="Publish" Condition="'$(OS)' == 'Windows_NT' and Exists('$(_PtyDepsSourceDir)') and '$(PublishDir)' != ''">
+    <Copy
+      SourceFiles="@(_PtyDepsFiles)"
+      DestinationFiles="@(_PtyDepsFiles->'$(PublishDir)deps\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+</Project>

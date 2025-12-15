@@ -1,0 +1,30 @@
+<Project>
+  <!--
+    PTY NuGet 运行时依赖拷贝规则（直接引用时使用 build/，间接引用时使用 buildTransitive/）
+
+    说明同 buildTransitive/PTY.targets。
+  -->
+
+  <PropertyGroup>
+    <_PtyPackageRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\'))</_PtyPackageRoot>
+    <_PtyDepsSourceDir>$(_PtyPackageRoot)content\deps\</_PtyDepsSourceDir>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(OS)' == 'Windows_NT'">
+    <_PtyDepsFiles Include="$(_PtyDepsSourceDir)**\*.*" />
+  </ItemGroup>
+
+  <Target Name="_PtyCopyDepsToOutput" AfterTargets="Build" Condition="'$(OS)' == 'Windows_NT' and Exists('$(_PtyDepsSourceDir)')">
+    <Copy
+      SourceFiles="@(_PtyDepsFiles)"
+      DestinationFiles="@(_PtyDepsFiles->'$(TargetDir)deps\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="_PtyCopyDepsToPublish" AfterTargets="Publish" Condition="'$(OS)' == 'Windows_NT' and Exists('$(_PtyDepsSourceDir)') and '$(PublishDir)' != ''">
+    <Copy
+      SourceFiles="@(_PtyDepsFiles)"
+      DestinationFiles="@(_PtyDepsFiles->'$(PublishDir)deps\%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+  </Target>
+</Project>
