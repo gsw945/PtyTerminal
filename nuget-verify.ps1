@@ -67,8 +67,12 @@ function Test-PtyNupkgLayout([string]$pkgPath) {
         if (-not (Test-ZipHasAnyEntryLike $zip '^content/deps/')) { throw 'MISSING in nupkg: content/deps/**' }
 
         # 3) Windows 关键文件（按仓库 deps 结构）
-        if (-not (Test-ZipHasEntry $zip 'content/deps/conpty/os64/conpty.dll')) { throw 'MISSING in nupkg: content/deps/conpty/os64/conpty.dll' }
-        if (-not (Test-ZipHasEntry $zip 'content/deps/conpty/os86/conpty.dll')) { throw 'MISSING in nupkg: content/deps/conpty/os86/conpty.dll' }
+        if (-not (Test-ZipHasEntry $zip 'content/deps/conpty/x64/conpty.dll')) { throw 'MISSING in nupkg: content/deps/conpty/x64/conpty.dll' }
+        if (-not (Test-ZipHasEntry $zip 'content/deps/conpty/x64/OpenConsole.exe')) { throw 'MISSING in nupkg: content/deps/conpty/x64/OpenConsole.exe' }
+        if (-not (Test-ZipHasEntry $zip 'content/deps/conpty/x86/conpty.dll')) { throw 'MISSING in nupkg: content/deps/conpty/x86/conpty.dll' }
+        if (-not (Test-ZipHasEntry $zip 'content/deps/conpty/x86/OpenConsole.exe')) { throw 'MISSING in nupkg: content/deps/conpty/x86/OpenConsole.exe' }
+        if (-not (Test-ZipHasEntry $zip 'content/deps/conpty/arm64/conpty.dll')) { throw 'MISSING in nupkg: content/deps/conpty/arm64/conpty.dll' }
+        if (-not (Test-ZipHasEntry $zip 'content/deps/conpty/arm64/OpenConsole.exe')) { throw 'MISSING in nupkg: content/deps/conpty/arm64/OpenConsole.exe' }
         if (-not (Test-ZipHasEntry $zip 'content/deps/winpty/winpty.dll')) { throw 'MISSING in nupkg: content/deps/winpty/winpty.dll' }
         if (-not (Test-ZipHasEntry $zip 'content/deps/winpty/winpty.exe')) { throw 'MISSING in nupkg: content/deps/winpty/winpty.exe' }
         if (-not (Test-ZipHasEntry $zip 'content/deps/winpty/winpty-agent.exe')) { throw 'MISSING in nupkg: content/deps/winpty/winpty-agent.exe' }
@@ -97,7 +101,7 @@ function Test-PtyNupkgSimple {
     dotnet add package PTY -v $ver -s $releaseDir;
     dotnet build;
     Pop-Location;
-    $out = Join-Path $projDir "bin\Debug\net8.0\deps\conpty\os64\conpty.dll";
+    $out = Join-Path $projDir "bin\Debug\net8.0\deps\conpty\x64\conpty.dll";
     if (Test-Path $out) { "OK: copied -> $out" } else { "MISSING: $out" }
 }
 
@@ -129,8 +133,12 @@ function Test-PtyNupkgFull {
     if (Test-Path $p) {
         "deps exists";
         $expected = @(
-            (Join-Path $p 'conpty\os64\conpty.dll'),
-            (Join-Path $p 'conpty\os86\conpty.dll'),
+            (Join-Path $p 'conpty\x64\conpty.dll'),
+            (Join-Path $p 'conpty\x64\OpenConsole.exe'),
+            (Join-Path $p 'conpty\x86\conpty.dll'),
+            (Join-Path $p 'conpty\x86\OpenConsole.exe'),
+            (Join-Path $p 'conpty\arm64\conpty.dll'),
+            (Join-Path $p 'conpty\arm64\OpenConsole.exe'),
             (Join-Path $p 'winpty\winpty.dll'),
             (Join-Path $p 'winpty\winpty.exe'),
             (Join-Path $p 'winpty\winpty-agent.exe'),
