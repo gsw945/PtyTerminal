@@ -7,7 +7,7 @@
 .NET(C#) 跨平台的 [伪终端](https://baike.baidu.com/item/%E4%BC%AA%E7%BB%88%E7%AB%AF/6247439) 库, 及其使用示例
 
 ## 项目
-#### **Pty.Net** .NET(C#) 跨平台的 [伪终端](https://baike.baidu.com/item/%E4%BC%AA%E7%BB%88%E7%AB%AF/6247439) 库
+#### **Pty.Net** .NET(C#) 跨平台的 [伪终端](https://baike.baidu.com/item/%E4%BC%AA%E7%BB%88%E7%AB%AF/6247439) 库。基于 [microsoft/vs-pty.net](https://github.com/microsoft/vs-pty.net/tree/main/src/Pty.Net) 修改而来, 并借鉴了 [WindowsGSM/SteamCMD.ConPTY](https://github.com/WindowsGSM/SteamCMD.ConPTY/tree/main/SteamCMD.ConPTY)。
 - Windows 平台上兼容 `ConPTY` 和 `winpty`
 - 在 Unix 平台上通过平台服务调用()接口 (`forkpty`、`ioctl`、`kill` 等)实现
     - 接口在 Linux 上由 `libc.so.6` 和 `libutil.so.1` 提供
@@ -43,6 +43,8 @@
 - Github: [microsoft/terminal](https://github.com/microsoft/terminal)
     - [src/winconpty](https://github.com/microsoft/terminal/tree/main/src/winconpty)
     - [samples/ConPTY](https://github.com/microsoft/terminal/tree/main/samples/ConPTY)
+        - [MiniTerm](https://github.com/microsoft/terminal/tree/main/samples/ConPTY/MiniTerm/MiniTerm)
+- Github [microsoft/node-pty](https://github.com/microsoft/node-pty)
 - Github: [unosquare/embedio](https://github.com/unosquare/embedio)
     - [EmbedIO - WebSockets Example](https://unosquare.github.io/embedio/#websockets-example)
 - Github: [xtermjs/xterm.js](https://github.com/xtermjs/xterm.js)

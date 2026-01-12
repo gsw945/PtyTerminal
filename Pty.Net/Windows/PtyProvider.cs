@@ -3,6 +3,7 @@
 
 namespace Pty.Net.Windows
 {
+    using Pty.Net.Windows.Native;
     using System;
     using System.Collections.Generic;
     using System.ComponentModel;
@@ -14,8 +15,6 @@ namespace Pty.Net.Windows
     using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
-    using static Pty.Net.Windows.NativeMethods;
-    using static Pty.Net.Windows.WinptyNativeInterop;
 
     /// <summary>
     /// Provides a pty connection for windows machines.
@@ -28,14 +27,55 @@ namespace Pty.Net.Windows
             TraceSource trace,
             CancellationToken cancellationToken)
         {
-            if (NativeMethods.IsPseudoConsoleSupported && !options.ForceWinPty)
-            {
-                return this.StartPseudoConsoleAsync(options, trace, cancellationToken);
-            }
-            else
+            bool forceWinPty = options.ForceWinPty || IsPreWindows10();
+
+            bool? preferCustom = options.UseCustomConPtyDll;
+
+            if (forceWinPty)
             {
                 return this.StartWinPtyTerminalAsync(options, trace, cancellationToken);
             }
+
+            // Selection order depends on whether custom DLL preference was explicitly specified.
+            if (preferCustom == true)
+            {
+                // Explicitly prefer custom ConPTY first, then system ConPTY, else winpty.
+                if (ConPTYConsole.IsPseudoConsoleSupported(customDll: true))
+                {
+                    return this.StartPseudoConsoleAsync(options, trace, cancellationToken, useCustomConPty: true);
+                }
+
+                if (ConPTYConsole.IsPseudoConsoleSupported(customDll: false))
+                {
+                    return this.StartPseudoConsoleAsync(options, trace, cancellationToken, useCustomConPty: false);
+                }
+
+                return this.StartWinPtyTerminalAsync(options, trace, cancellationToken);
+            }
+
+            if (preferCustom == false)
+            {
+                // Explicitly avoid custom ConPTY; try system ConPTY only, then winpty.
+                if (ConPTYConsole.IsPseudoConsoleSupported(customDll: false))
+                {
+                    return this.StartPseudoConsoleAsync(options, trace, cancellationToken, useCustomConPty: false);
+                }
+
+                return this.StartWinPtyTerminalAsync(options, trace, cancellationToken);
+            }
+
+            // Unspecified: default preference — system ConPTY first, then custom, else winpty.
+            if (ConPTYConsole.IsPseudoConsoleSupported(customDll: false))
+            {
+                return this.StartPseudoConsoleAsync(options, trace, cancellationToken, useCustomConPty: false);
+            }
+
+            if (ConPTYConsole.IsPseudoConsoleSupported(customDll: true))
+            {
+                return this.StartPseudoConsoleAsync(options, trace, cancellationToken, useCustomConPty: true);
+            }
+
+            return this.StartWinPtyTerminalAsync(options, trace, cancellationToken);
         }
 
         private static void ThrowIfErrorOrNull(string message, IntPtr err, IntPtr ptr)
@@ -51,8 +91,8 @@ namespace Pty.Net.Windows
         {
             if (error != IntPtr.Zero)
             {
-                var exceptionMessage = $"{message}: {winpty_error_msg(error)} ({winpty_error_code(error)})";
-                winpty_error_free(error);
+                var exceptionMessage = $"{message}: {WinptyNativeInterop.winpty_error_msg(error)} ({WinptyNativeInterop.winpty_error_code(error)})";
+                WinptyNativeInterop.winpty_error_free(error);
                 throw new InvalidOperationException(exceptionMessage);
             }
 
@@ -206,7 +246,7 @@ namespace Pty.Net.Windows
             return Path.Combine(cwd, app);
         }
 
-        private static string GetEnvironmentString(IDictionary<string, string> environment)
+        internal static string GetEnvironmentString(IDictionary<string, string> environment)
         {
             string[] keys = new string[environment.Count];
             environment.Keys.CopyTo(keys, 0);
@@ -241,13 +281,13 @@ namespace Pty.Net.Windows
         {
             IntPtr error;
 
-            IntPtr config = winpty_config_new(WINPTY_FLAG_COLOR_ESCAPES, out error);
+            IntPtr config = WinptyNativeInterop.winpty_config_new(WinptyNativeInterop.WINPTY_FLAG_COLOR_ESCAPES, out error);
             ThrowIfErrorOrNull("Error creating WinPTY config", error, config);
 
-            winpty_config_set_initial_size(config, options.Cols, options.Rows);
+            WinptyNativeInterop.winpty_config_set_initial_size(config, options.Cols, options.Rows);
 
-            IntPtr handle = winpty_open(config, out error);
-            winpty_config_free(config);
+            IntPtr handle = WinptyNativeInterop.winpty_open(config, out error);
+            WinptyNativeInterop.winpty_config_free(config);
 
             ThrowIfErrorOrNull("Error launching WinPTY agent", error, handle);
 
@@ -260,8 +300,8 @@ namespace Pty.Net.Windows
 
             trace.TraceInformation($"Starting terminal process '{app}' with command line {commandLine}");
 
-            IntPtr spawnConfig = winpty_spawn_config_new(
-                WINPTY_SPAWN_FLAG_AUTO_SHUTDOWN,
+            IntPtr spawnConfig = WinptyNativeInterop.winpty_spawn_config_new(
+                WinptyNativeInterop.WINPTY_SPAWN_FLAG_AUTO_SHUTDOWN,
                 app,
                 commandLine,
                 options.Cwd,
@@ -270,8 +310,8 @@ namespace Pty.Net.Windows
 
             ThrowIfErrorOrNull("Error creating WinPTY spawn config", error, spawnConfig);
 
-            bool spawnSuccess = winpty_spawn(handle, spawnConfig, out SafeProcessHandle hProcess, out IntPtr thread, out int procError, out error);
-            winpty_spawn_config_free(spawnConfig);
+            bool spawnSuccess = WinptyNativeInterop.winpty_spawn(handle, spawnConfig, out Kernel32.SafeProcessHandle hProcess, out IntPtr thread, out int procError, out error);
+            WinptyNativeInterop.winpty_spawn_config_free(spawnConfig);
 
             if (!spawnSuccess)
             {
@@ -279,7 +319,7 @@ namespace Pty.Net.Windows
                 {
                     if (error != IntPtr.Zero)
                     {
-                        winpty_error_free(error);
+                        WinptyNativeInterop.winpty_error_free(error);
                     }
 
                     throw new InvalidOperationException($"Unable to start WinPTY terminal '{app}': {new Win32Exception(procError).Message} ({procError})");
@@ -292,67 +332,38 @@ namespace Pty.Net.Windows
             Stream? readFromStream = null;
             try
             {
-                writeToStream = await CreatePipeAsync(winpty_conin_name(handle), PipeDirection.Out, cancellationToken);
-                readFromStream = await CreatePipeAsync(winpty_conout_name(handle), PipeDirection.In, cancellationToken);
+                writeToStream = await CreatePipeAsync(WinptyNativeInterop.winpty_conin_name(handle), PipeDirection.Out, cancellationToken);
+                readFromStream = await CreatePipeAsync(WinptyNativeInterop.winpty_conout_name(handle), PipeDirection.In, cancellationToken);
             }
             catch
             {
                 writeToStream?.Dispose();
                 hProcess.Close();
-                winpty_free(handle);
+                WinptyNativeInterop.winpty_free(handle);
                 throw;
             }
 
             return new WinPtyConnection(readFromStream, writeToStream, handle, hProcess);
         }
 
-        private Task<IPtyConnection> StartPseudoConsoleAsync(
-           PtyOptions options,
-           TraceSource trace,
-           CancellationToken cancellationToken)
+          private Task<IPtyConnection> StartPseudoConsoleAsync(
+              PtyOptions options,
+              TraceSource trace,
+              CancellationToken cancellationToken,
+              bool useCustomConPty)
         {
-            // Create the in/out pipes
-            if (!CreatePipe(out SafePipeHandle inPipePseudoConsoleSide, out SafePipeHandle inPipeOurSide, null, 0))
-            {
-                throw new InvalidOperationException("Could not create an anonymous pipe", new Win32Exception());
-            }
+            var inPipe = new ConPTYPipe();
+            var outPipe = new ConPTYPipe();
 
-            if (!CreatePipe(out SafePipeHandle outPipeOurSide, out SafePipeHandle outPipePseudoConsoleSide, null, 0))
-            {
-                throw new InvalidOperationException("Could not create an anonymous pipe", new Win32Exception());
-            }
+            var coord = new Kernel32.COORD(options.Cols, options.Rows);
 
-            var coord = new Coord(options.Cols, options.Rows);
-            var pseudoConsoleHandle = new SafePseudoConsoleHandle();
-            int hr;
-            RuntimeHelpers.PrepareConstrainedRegions();
-            try
-            {
-                // Run CreatePseudoConsole* in a CER to make sure we don't leak handles.
-                // MSDN suggest to put all CER code in a finally block
-                // See http://msdn.microsoft.com/en-us/library/system.runtime.compilerservices.runtimehelpers.prepareconstrainedregions(v=vs.110).aspx
-            }
-            finally
-            {
-                // Create the Pseudo Console, using the pipes
-                hr = CreatePseudoConsole(coord, inPipePseudoConsoleSide.Handle, outPipePseudoConsoleSide.Handle, 0, out IntPtr hPC);
+            // Use ConPTYConsole helper to create the handle with correct backend (custom vs system) and CER protection.
+            Kernel32.SafePseudoConsoleHandle pseudoConsoleHandle = ConPTYConsole.Create(
+                coord, 
+                inPipe.Read, 
+                outPipe.Write, 
+                useCustomConPty);
 
-                // Remember the handle inside the CER to prevent leakage
-                if (hPC != IntPtr.Zero && hPC != INVALID_HANDLE_VALUE)
-                {
-                    pseudoConsoleHandle.InitialSetHandle(hPC);
-                }
-            }
-
-            if (hr != S_OK)
-            {
-                Marshal.ThrowExceptionForHR(hr);
-            }
-
-            // Prepare the StartupInfoEx structure attached to the ConPTY.
-            var startupInfo = default(STARTUPINFOEX);
-            startupInfo.InitAttributeListAttachedToConPTY(pseudoConsoleHandle);
-            IntPtr lpEnvironment = Marshal.StringToHGlobalUni(GetEnvironmentString(options.Environment));
             try
             {
                 string app = GetAppOnPath(options.App, options.Cwd, options.Environment);
@@ -377,75 +388,79 @@ namespace Pty.Net.Windows
                     commandLine.Append(arguments);
                 }
 
-                bool success;
-                int errorCode = 0;
-                var processInfo = default(PROCESS_INFORMATION);
-                var processHandle = new SafeProcessHandle();
-                var mainThreadHandle = new SafeThreadHandle();
-
-                RuntimeHelpers.PrepareConstrainedRegions();
-                try
+                using (var process = ProcessFactory.Start(commandLine.ToString(), options.Environment, options.Cwd, pseudoConsoleHandle))
                 {
-                    // Run CreateProcess* in a CER to make sure we don't leak handles.
+                    // Transfer ownership of handles to PseudoConsoleConnection
+                    var processHandle = new Kernel32.SafeProcessHandle(process.ProcessInfo.hProcess, ownsHandle: true);
+                    var mainThreadHandle = new Kernel32.SafeThreadHandle(process.ProcessInfo.hThread, ownsHandle: true);
+
+                    var inPipePseudoConsoleSide = inPipe.Read;
+                    var outPipePseudoConsoleSide = outPipe.Write;
+                    var inPipeOurSide = inPipe.Write;
+                    var outPipeOurSide = outPipe.Read;
+
+                    // Detach handles from pipe wrappers so they are not closed when wrappers are disposed
+                    inPipe.Detach();
+                    outPipe.Detach();
+
+                    var connectionOptions = new PseudoConsoleConnection.PseudoConsoleConnectionHandles(
+                        inPipePseudoConsoleSide,
+                        outPipePseudoConsoleSide,
+                        inPipeOurSide,
+                        outPipeOurSide,
+                        pseudoConsoleHandle,
+                        processHandle,
+                        process.ProcessInfo.dwProcessId,
+                        mainThreadHandle);
+
+                    var result = new PseudoConsoleConnection(connectionOptions, useCustomConPty);
+                    return Task.FromResult<IPtyConnection>(result);
                 }
-                finally
-                {
-                    success = CreateProcess(
-                        null,   // lpApplicationName
-                        commandLine.ToString(),
-                        null,   // lpProcessAttributes
-                        null,   // lpThreadAttributes
-                        false,  // bInheritHandles VERY IMPORTANT that this is false
-                        EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT, // dwCreationFlags
-                        lpEnvironment,
-                        options.Cwd,
-                        ref startupInfo,
-                        out processInfo);
-
-                    if (!success)
-                    {
-                        errorCode = Marshal.GetLastWin32Error();
-                    }
-
-                    // Remember the handles inside the CER to prevent leakage
-                    if (processInfo.hProcess != IntPtr.Zero && processInfo.hProcess != INVALID_HANDLE_VALUE)
-                    {
-                        processHandle.InitialSetHandle(processInfo.hProcess);
-                    }
-
-                    if (processInfo.hThread != IntPtr.Zero && processInfo.hThread != INVALID_HANDLE_VALUE)
-                    {
-                        mainThreadHandle.InitialSetHandle(processInfo.hThread);
-                    }
-                }
-
-                if (!success)
-                {
-                    var exception = new Win32Exception(errorCode);
-                    throw new InvalidOperationException($"Could not start terminal process {commandLine.ToString()}: {exception.Message}", exception);
-                }
-
-                var connectionOptions = new PseudoConsoleConnection.PseudoConsoleConnectionHandles(
-                    inPipePseudoConsoleSide,
-                    outPipePseudoConsoleSide,
-                    inPipeOurSide,
-                    outPipeOurSide,
-                    pseudoConsoleHandle,
-                    processHandle,
-                    processInfo.dwProcessId,
-                    mainThreadHandle);
-
-                var result = new PseudoConsoleConnection(connectionOptions);
-                return Task.FromResult<IPtyConnection>(result);
             }
-            finally
+            catch
             {
-                startupInfo.FreeAttributeList();
-                if (lpEnvironment != IntPtr.Zero)
+                inPipe.Dispose();
+                outPipe.Dispose();
+                pseudoConsoleHandle.Dispose();
+                throw;
+            }
+        }
+
+        private static bool IsPreWindows10()
+        {
+            // Combine known release mapping with version fallback to future-proof new Windows builds.
+            var (kind, release) = WindowsReleaseInfo.GetRelease();
+            var (major, _, build, _) = WindowsVersion.GetRealVersion();
+
+            // Known ConPTY-capable releases
+            switch (release)
+            {
+                case WindowsReleaseInfo.WindowsRelease.Windows10:
+                case WindowsReleaseInfo.WindowsRelease.Windows11:
+                case WindowsReleaseInfo.WindowsRelease.WindowsServer2019:
+                case WindowsReleaseInfo.WindowsRelease.WindowsServer2022:
+                case WindowsReleaseInfo.WindowsRelease.WindowsServer2025:
+                    return false;
+            }
+
+            // Future desktop/server versions: assume ConPTY if major version > 10
+            if (major > 10)
+            {
+                return false;
+            }
+
+            // For Windows 10 family but unknown release bucket, use build threshold (1809 / 17763)
+            if (major == 10)
+            {
+                // Windows 10 1809+ and Windows Server 2019+ share build >= 17763
+                if (build >= 17763)
                 {
-                    Marshal.FreeHGlobal(lpEnvironment);
+                    return false;
                 }
             }
+
+            // Older than Windows 10 (or Server 2019) -> treat as pre-ConPTY
+            return true;
         }
     }
 }

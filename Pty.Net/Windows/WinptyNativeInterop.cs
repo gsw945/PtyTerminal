@@ -3,9 +3,9 @@
 
 namespace Pty.Net.Windows
 {
+    using Pty.Net.Windows.Native;
     using System;
     using System.Runtime.InteropServices;
-    using static Pty.Net.Windows.NativeMethods;
 
     /// <summary>
     /// Native interop definitions for winpty.
@@ -168,7 +168,7 @@ namespace Pty.Net.Windows
         public static extern bool winpty_spawn(
             IntPtr wp,
             IntPtr cfg,
-            out SafeProcessHandle process_handle,
+            out Kernel32.SafeProcessHandle process_handle,
             out IntPtr thread_handle,
             out int create_process_error,
             out IntPtr err);

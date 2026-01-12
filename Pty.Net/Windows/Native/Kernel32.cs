@@ -1,61 +1,68 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT license. See LICENSE file in the project root for full license information.
-
-namespace Pty.Net.Windows
+﻿namespace Pty.Net.Windows.Native
 {
+    using Microsoft.Win32.SafeHandles;
     using System;
     using System.ComponentModel;
     using System.Diagnostics;
     using System.Runtime.ConstrainedExecution;
     using System.Runtime.InteropServices;
     using System.Security;
-    using System.Text;
-    using Microsoft.Win32.SafeHandles;
 
-    internal static class NativeMethods
+    internal class Kernel32
     {
-        public const int S_OK = 0;
+        internal const string DllName = "kernel32.dll";
+
+        internal const int S_OK = 0;
+        internal const int STD_OUTPUT_HANDLE = -11;
+        internal const uint ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
+        internal const uint DISABLE_NEWLINE_AUTO_RETURN = 0x0008;
+
+        internal const int SM_SERVERR2 = 89;
+        internal const uint VER_SUITE_WH_SERVER = 0x00008000;
+        internal const ushort PROCESSOR_ARCHITECTURE_AMD64 = 9;
+        internal const ushort PROCESSOR_ARCHITECTURE_INTEL = 0;
 
         // dwCreationFlags for CreateProcess
         internal const int CREATE_UNICODE_ENVIRONMENT = 0x00000400;
         internal const int EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
         internal const int STARTF_USESTDHANDLES = 0x00000100;
 
+        // internal const uint PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
         internal static readonly IntPtr PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = new IntPtr(
             22 // ProcThreadAttributePseudoConsole
             | 0x20000); // PROC_THREAD_ATTRIBUTE_INPUT - Attribute is input only
 
         internal static readonly IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
 
-        private static readonly Lazy<bool> IsPseudoConsoleSupportedLazy = new Lazy<bool>(
-            () =>
-            {
-                IntPtr hLibrary = LoadLibraryW("kernel32.dll");
-                return hLibrary != IntPtr.Zero && GetProcAddress(hLibrary, "CreatePseudoConsole") != IntPtr.Zero;
-            },
-            isThreadSafe: true);
-
-        internal static bool IsPseudoConsoleSupported => IsPseudoConsoleSupportedLazy.Value;
-
-        [DllImport("kernel32.dll")]
+        #region P/Invoke Declarations
+        [DllImport(DllName)]
         public static extern int GetProcessId(SafeProcessHandle hProcess);
 
+        [DllImport(DllName, SetLastError = true)]
+        public static extern bool DuplicateHandle(IntPtr hSourceProcessHandle,
+           IntPtr hSourceHandle,
+           IntPtr hTargetProcessHandle,
+           out IntPtr lpTargetHandle,
+           uint dwDesiredAccess,
+           bool bInheritHandle,
+           uint dwOptions);
+
         [return: MarshalAs(UnmanagedType.Bool)]
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport(DllName, SetLastError = true)]
         [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
         internal static extern bool CloseHandle(IntPtr hObject);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport(DllName, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool InitializeProcThreadAttributeList(
             IntPtr lpAttributeList, int dwAttributeCount, int dwFlags, ref IntPtr lpSize);
 
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport(DllName, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool UpdateProcThreadAttribute(
             IntPtr lpAttributeList,
             uint dwFlags,
-            IntPtr Attribute,
+            IntPtr attribute,
             IntPtr lpValue,
             IntPtr cbSize,
             IntPtr lpPreviousValue,
@@ -63,56 +70,24 @@ namespace Pty.Net.Windows
 
         [return: MarshalAs(UnmanagedType.Bool)]
         [ReliabilityContract(Consistency.WillNotCorruptState, Cer.MayFail)]
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [DllImport(DllName, CharSet = CharSet.Unicode, SetLastError = true)]
         internal static extern bool CreateProcess(
             string? lpApplicationName,
-            string lpCommandLine,                // LPTSTR - note: CreateProcess might insert a null somewhere in this string
+            string? lpCommandLine,                // LPTSTR - note: CreateProcess might insert a null somewhere in this string
             SECURITY_ATTRIBUTES? lpProcessAttributes,    // LPSECURITY_ATTRIBUTES
             SECURITY_ATTRIBUTES? lpThreadAttributes,     // LPSECURITY_ATTRIBUTES
             bool bInheritHandles,                       // BOOL
-            int dwCreationFlags,                        // DWORD
+            uint dwCreationFlags,                        // DWORD
             IntPtr lpEnvironment,                       // LPVOID
-            string lpCurrentDirectory,
-            ref STARTUPINFOEX lpStartupInfo,                // LPSTARTUPINFO
+            string? lpCurrentDirectory,
+            [In] ref STARTUPINFOEX lpStartupInfo,                // LPSTARTUPINFO
             out PROCESS_INFORMATION lpProcessInformation);  // LPPROCESS_INFORMATION
 
-        internal static int CreatePseudoConsole(Coord coord, IntPtr input, IntPtr output, uint flags, out IntPtr consoleHandle)
-        {
-            if (Environment.Is64BitOperatingSystem)
-            {
-                return CreatePseudoConsole64(coord, input, output, flags, out consoleHandle);
-            }
-            else
-            {
-                return CreatePseudoConsole86(coord, input, output, flags, out consoleHandle);
-            }
-        }
+        [DllImport(DllName, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool DeleteProcThreadAttributeList(IntPtr lpAttributeList);
 
-        internal static int ResizePseudoConsole(SafePseudoConsoleHandle consoleHandle, Coord coord)
-        {
-            if (Environment.Is64BitOperatingSystem)
-            {
-                return ResizePseudoConsole64(consoleHandle, coord);
-            }
-            else
-            {
-                return ResizePseudoConsole86(consoleHandle, coord);
-            }
-        }
-
-        internal static void ClosePseudoConsole(IntPtr consoleHandle)
-        {
-            if (Environment.Is64BitOperatingSystem)
-            {
-                ClosePseudoConsole64(consoleHandle);
-            }
-            else
-            {
-                ClosePseudoConsole86(consoleHandle);
-            }
-        }
-
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport(DllName, SetLastError = true)]
         [SecurityCritical]
         [return: MarshalAs(UnmanagedType.Bool)]
         internal static extern bool CreatePipe(
@@ -121,33 +96,128 @@ namespace Pty.Net.Windows
             SECURITY_ATTRIBUTES? pipeAttributes,    // LPSECURITY_ATTRIBUTES lpPipeAttributes,  // security attributes
             int size);                              // DWORD nSize                              // pipe size
 
-        [DllImport("kernel32.dll", SetLastError = true)]
+        [DllImport(DllName, SetLastError = true)]
         internal static extern IntPtr LoadLibraryW([MarshalAs(UnmanagedType.LPWStr)] string libName);
 
-        [DllImport("kernel32.dll")]
+        [DllImport(DllName)]
         internal static extern IntPtr GetProcAddress(IntPtr hModule, [MarshalAs(UnmanagedType.LPStr)] string procName);
 
-        [DllImport("deps\\conpty\\os64\\conpty.dll", EntryPoint = "CreatePseudoConsole")]
-        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.MayFail)]
-        private static extern int CreatePseudoConsole64(Coord coord, IntPtr input, IntPtr output, uint flags, out IntPtr consoleHandle);
+        [DllImport(DllName, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool FreeLibrary(IntPtr hModule);
 
-        [DllImport("deps\\conpty\\os64\\conpty.dll", EntryPoint = "ResizePseudoConsole")]
-        private static extern int ResizePseudoConsole64(SafePseudoConsoleHandle consoleHandle, Coord coord);
+        [DllImport(DllName, SetLastError = true)]
+        internal static extern SafeFileHandle GetStdHandle(StdHandle nStdHandle);
 
-        [DllImport("deps\\conpty\\os64\\conpty.dll", EntryPoint = "ClosePseudoConsole")]
-        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-        private static extern void ClosePseudoConsole64(IntPtr consoleHandle);
+        [DllImport(DllName, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetStdHandle(StdHandle nStdHandle, IntPtr hHandle);
 
-        [DllImport("deps\\conpty\\os86\\conpty.dll", EntryPoint = "CreatePseudoConsole")]
-        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.MayFail)]
-        private static extern int CreatePseudoConsole86(Coord coord, IntPtr input, IntPtr output, uint flags, out IntPtr consoleHandle);
+        [DllImport(DllName, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool AllocConsole();
 
-        [DllImport("deps\\conpty\\os86\\conpty.dll", EntryPoint = "ResizePseudoConsole")]
-        private static extern int ResizePseudoConsole86(SafePseudoConsoleHandle consoleHandle, Coord coord);
+        [DllImport(DllName, SetLastError = true)]
+        internal static extern bool SetConsoleMode(SafePipeHandle hConsoleHandle, uint mode);
 
-        [DllImport("deps\\conpty\\os86\\conpty.dll", EntryPoint = "ClosePseudoConsole")]
-        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-        private static extern void ClosePseudoConsole86(IntPtr consoleHandle);
+        [DllImport(DllName, SetLastError = true)]
+        internal static extern bool GetConsoleMode(SafePipeHandle handle, out uint mode);
+
+        [DllImport(DllName, SetLastError = true)]
+        internal static extern bool SetConsoleCtrlHandler(CtrlEventDelegate callback, bool add);
+
+        [DllImport(DllName)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GenerateConsoleCtrlEvent(CtrlEvents dwCtrlEvent, uint dwProcessGroupId);
+
+        [DllImport(DllName, SetLastError = true)]
+        internal static extern int CreatePseudoConsole(COORD size, SafePipeHandle hInput, SafePipeHandle hOutput, uint dwFlags, out IntPtr phPC);
+
+        [DllImport(DllName, SetLastError = true)]
+        internal static extern int ResizePseudoConsole(IntPtr hPC, COORD size);
+
+        [DllImport(DllName, SetLastError = true)]
+        internal static extern int ClosePseudoConsole(IntPtr hPC);
+
+        [DllImport(DllName, SetLastError = true, ExactSpelling = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool FreeConsole();
+
+        [DllImport(DllName)]
+        public static extern IntPtr GetConsoleWindow();
+
+        [DllImport(DllName)]
+        internal static extern void GetNativeSystemInfo(ref SYSTEM_INFO lpSystemInfo);
+        #endregion
+
+        internal delegate bool CtrlEventDelegate(CtrlEvents ctrlEvent);
+
+        #region Enums
+        internal enum CtrlEvents : uint
+        {
+            CTRL_C_EVENT = 0,
+            CTRL_BREAK_EVENT = 1,
+            CTRL_CLOSE_EVENT = 2,
+            CTRL_LOGOFF_EVENT = 5,
+            CTRL_SHUTDOWN_EVENT = 6,
+        }
+
+        internal enum StdHandle
+        {
+            /// <summary>
+            /// The standard input device
+            /// </summary>
+            InputHandle = -10,
+            /// <summary>
+            /// The standard output device.
+            /// </summary>
+            OutputHandle = -11,
+            /// <summary>
+            /// The standard error device.
+            /// </summary>
+            ErrorHandle = -12
+        }
+        
+        internal enum ShowState
+        {
+            SwHide = 0,
+            SwShowDefault = 10
+        }
+        #endregion
+
+        #region Definitions
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct SYSTEM_INFO
+        {
+            public ushort wProcessorArchitecture;
+            public ushort wReserved;
+            public uint dwPageSize;
+            public IntPtr lpMinimumApplicationAddress;
+            public IntPtr lpMaximumApplicationAddress;
+            public IntPtr dwActiveProcessorMask;
+            public uint dwNumberOfProcessors;
+            public uint dwProcessorType;
+            public uint dwAllocationGranularity;
+            public ushort wProcessorLevel;
+            public ushort wProcessorRevision;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        [DebuggerStepThrough]
+        internal class SECURITY_ATTRIBUTES
+        {
+            public int nLength;
+            public IntPtr lpSecurityDescriptor;
+            [MarshalAs(UnmanagedType.Bool)]
+            public bool bInheritHandle;
+
+            public static readonly SECURITY_ATTRIBUTES Zero = new SECURITY_ATTRIBUTES
+            {
+                nLength = Marshal.SizeOf(typeof(SECURITY_ATTRIBUTES)),
+                bInheritHandle = true,
+                lpSecurityDescriptor = IntPtr.Zero
+            };
+        }
 
         [StructLayout(LayoutKind.Sequential, Pack = 8, CharSet = CharSet.Unicode)]
         internal struct STARTUPINFO
@@ -170,28 +240,6 @@ namespace Pty.Net.Windows
             public IntPtr hStdInput;
             public IntPtr hStdOutput;
             public IntPtr hStdError;
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct Coord
-        {
-            public ushort X;
-            public ushort Y;
-
-            public Coord(int x, int y)
-            {
-                this.X = (ushort)x;
-                this.Y = (ushort)y;
-            }
-        }
-
-        [StructLayout(LayoutKind.Sequential)]
-        internal struct PROCESS_INFORMATION
-        {
-            public IntPtr hProcess;
-            public IntPtr hThread;
-            public int dwProcessId;
-            public int dwThreadId;
         }
 
         [StructLayout(LayoutKind.Sequential, Pack = 8, CharSet = CharSet.Unicode)]
@@ -261,16 +309,31 @@ namespace Pty.Net.Windows
             }
         }
 
-#pragma warning disable SA1401 // Fields should be private
         [StructLayout(LayoutKind.Sequential)]
-        [DebuggerStepThrough]
-        internal class SECURITY_ATTRIBUTES
+        internal struct PROCESS_INFORMATION
         {
-            public int nLength = 12;
-            public IntPtr lpSecurityDescriptor;
-            public bool bInheritHandle = false;
+            public IntPtr hProcess;
+            public IntPtr hThread;
+            public int dwProcessId;
+            public int dwThreadId;
         }
-#pragma warning restore SA1401 // Fields should be private
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct COORD
+        {
+            public ushort X;
+            public ushort Y;
+
+            public COORD(int x, int y)
+            {
+                this.X = (ushort)x;
+                this.Y = (ushort)y;
+            }
+        }
+        #endregion
+
+        #region Handle Classes
+        // TODO: direct to use Microsoft.Win32.SafeHandles.*
 
         [SecurityCritical]
         internal abstract class SafeKernelHandle : SafeHandleZeroOrMinusOneIsInvalid
@@ -302,7 +365,7 @@ namespace Pty.Net.Windows
             [SecurityCritical]
             protected override bool ReleaseHandle()
             {
-                return NativeMethods.CloseHandle(this.handle);
+                return CloseHandle(this.handle);
             }
         }
 
@@ -351,6 +414,8 @@ namespace Pty.Net.Windows
         [SecurityCritical]
         internal class SafePseudoConsoleHandle : SafeKernelHandle
         {
+            private bool _useCustomClose;
+
             public SafePseudoConsoleHandle()
                 : base(ownsHandle: true)
             {
@@ -362,13 +427,32 @@ namespace Pty.Net.Windows
                 this.SetHandle(handle);
             }
 
+            /// <summary>
+            /// Marks this handle to use the custom ConPTY DLL's ClosePseudoConsole when releasing.
+            /// </summary>
+            /// <param name="useCustom">Whether to use custom close interop.</param>
+            [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
+            public void SetUseCustomClose(bool useCustom)
+            {
+                _useCustomClose = useCustom;
+            }
+
             [ReliabilityContract(Consistency.WillNotCorruptState, Cer.MayFail)]
             [SecurityCritical]
             protected override bool ReleaseHandle()
             {
-                NativeMethods.ClosePseudoConsole(this.handle);
+                // Ensure we close with the same backend that created the pseudo console.
+                if (_useCustomClose)
+                {
+                    Pty.Net.Windows.ConPTYCustomInterop.ClosePseudoConsole(this.handle);
+                }
+                else
+                {
+                    ClosePseudoConsole(this.handle);
+                }
                 return true;
             }
         }
+        #endregion
     }
 }

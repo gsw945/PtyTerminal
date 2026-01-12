@@ -41,7 +41,9 @@ namespace PtyWeb
         private static void CopyInputToPipe(CancellationTokenSource cts, IPtyConnection terminal)
         {
             string CtrlC_Command = "\x3";
-            using (var writer = new StreamWriter(terminal.WriterStream))
+            // Use UTF-8 for PTY input (ConPTY/Unix)
+            // Use new UTF8Encoding(false) to avoid writing BOM
+            using (var writer = new StreamWriter(terminal.WriterStream, new UTF8Encoding(false)) { AutoFlush = true })
             {
                 Console.CancelKeyPress += (sender, e) =>
                 {
@@ -72,7 +74,7 @@ namespace PtyWeb
                         {
                             modifiers.Add("Alt");
                         }
-                        modifiers.Add(Enum.GetName(keyInfo.Key));
+                        modifiers.Add(Enum.GetName(keyInfo.Key)!);
                         var code = (uint)keyInfo.Key;
                         Utils.DebugWriteLine($"Key:[ {string.Join(" + ", modifiers)}], keyChar: {keyChar}, code: {code}({code.ToString("X")})");
                         if (keyChar == '\0')
@@ -168,9 +170,16 @@ namespace PtyWeb
         public static async Task RealTerminal()
         {
             var cts = new CancellationTokenSource();
-            var encoding = Utils.GetTerminalEncoding();
-            // Console.OutputEncoding = encoding;
-            Console.OutputEncoding = Encoding.UTF8;
+            // Modern PTYs (ConPTY on Windows, standard PTYs on *nix) use UTF-8.
+            var encoding = Encoding.UTF8;
+
+            try
+            {
+                Console.OutputEncoding = encoding;
+                Console.InputEncoding = encoding;
+                Utils.EnableVirtualTerminalProcessing();
+            }
+            catch { }
             /*
             Console.CancelKeyPress += (object sender, ConsoleCancelEventArgs e) =>
             {
@@ -192,11 +201,13 @@ namespace PtyWeb
                 App = app,
                 CommandLine = Utils.IsWin ? new string[] { } : new string[] { "--bash" },
                 VerbatimCommandLine = false,
-                ForceWinPty = false,
+                ForceWinPty = true,
+                UseCustomConPtyDll = true,
                 Environment = new Dictionary<string, string>()
                 {
                     { "FOO", "bar" },
                     { "Bazz", string.Empty },
+                    { "LANG", Utils.IsWin ? "" : "en_US.UTF-8" }, // For cmd.exe on Windows, ensure LANG is set appropriately
                 },
             };
 
@@ -210,8 +221,25 @@ namespace PtyWeb
             using (var terminalOutput = Console.OpenStandardOutput())
             {
                 var taskInput = Task.Run(() => CopyInputToPipe(cts, terminal));
-                var taskOutput = terminal.ReaderStream.CopyToAsync(terminalOutput, cts.Token);
-                await Task.WhenAny(taskInput, taskOutput);
+                // Read PTY bytes in source encoding, convert to console's encoding, then write
+                // PTY outputs in source encoding (e.g., GB2312) -> convert to UTF8 -> write to console
+                var readerTask = Task.Run(async () =>
+                {
+                    using (var reader = new StreamReader(terminal.ReaderStream, encoding, detectEncodingFromByteOrderMarks: false, bufferSize: 4096))
+                    {
+                        var buffer = new char[4096];
+                        int charsRead;
+                        while ((charsRead = await reader.ReadAsync(buffer, 0, buffer.Length)) > 0 && !cts.Token.IsCancellationRequested)
+                        {
+                            // Convert from source encoding (via chars) back to UTF8 for console output
+                            var sourceString = new string(buffer, 0, charsRead);
+                            var utf8Bytes = Encoding.UTF8.GetBytes(sourceString);
+                            await terminalOutput.WriteAsync(utf8Bytes, 0, utf8Bytes.Length);
+                            await terminalOutput.FlushAsync();
+                        }
+                    }
+                });
+                await Task.WhenAny(taskInput, readerTask);
             }
 
             /*

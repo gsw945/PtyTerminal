@@ -7,7 +7,7 @@
 cross platform [Pseudo Terminal (PTY)](https://en.wikipedia.org/wiki/Pseudoterminal) Library and Usage Demos in .NET(C#)
 
 ## Projects
-#### **Pty.Net**  cross platform [Pseudo Terminal (PTY)](https://en.wikipedia.org/wiki/Pseudoterminal) Library in .NET(C#)
+#### **Pty.Net**  cross platform [Pseudo Terminal (PTY)](https://en.wikipedia.org/wiki/Pseudoterminal) Library in .NET(C#). Modified from [microsoft/vs-pty.net](https://github.com/microsoft/vs-pty.net/tree/main/src/Pty.Net) and inspired by [WindowsGSM/SteamCMD.ConPTY](https://github.com/WindowsGSM/SteamCMD.ConPTY/tree/main/SteamCMD.ConPTY).
 - Compatibility with `ConPTY` and `winpty` on Windows Platform
 - P/Invoke APIs (`forkpty` `ioctl` `kill` ...) on Unix Platforms
     - APIs provided by `libc.so.6` and `libutil.so.1` for Linux
@@ -43,6 +43,8 @@ cross platform [Pseudo Terminal (PTY)](https://en.wikipedia.org/wiki/Pseudotermi
 - Github: [microsoft/terminal](https://github.com/microsoft/terminal)
     - [src/winconpty](https://github.com/microsoft/terminal/tree/main/src/winconpty)
     - [samples/ConPTY](https://github.com/microsoft/terminal/tree/main/samples/ConPTY)
+        - [MiniTerm](https://github.com/microsoft/terminal/tree/main/samples/ConPTY/MiniTerm/MiniTerm)
+- Github [microsoft/node-pty](https://github.com/microsoft/node-pty)
 - Github: [unosquare/embedio](https://github.com/unosquare/embedio)
     - [EmbedIO - WebSockets Example](https://unosquare.github.io/embedio/#websockets-example)
 - Github: [xtermjs/xterm.js](https://github.com/xtermjs/xterm.js)

@@ -18,7 +18,7 @@ namespace PtyWeb
         private readonly IWebSocketContext WS_CTX;
         private readonly WebSocketPtyModule OWNER;
 
-        private IPtyConnection terminal;
+        private IPtyConnection? terminal;
 
         public WebTerminal(IWebSocketContext webSocketContext, WebSocketPtyModule owner)
         {

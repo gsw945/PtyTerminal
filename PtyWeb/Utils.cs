@@ -26,7 +26,7 @@ namespace PtyWeb
             }
         }
 
-        private static string __debugFilePath;
+        private static string __debugFilePath = string.Empty;
         public static string DebugFilePath
         {
             get
@@ -36,6 +36,42 @@ namespace PtyWeb
                     __debugFilePath = Path.Combine(Environment.CurrentDirectory, "pty-terminal.debug");
                 }
                 return __debugFilePath;
+            }
+        }
+
+        private readonly static Encoding defaultEncoding;
+
+        public static Encoding DefaultEncoding => defaultEncoding;
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+        private static extern uint GetOEMCP();
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr GetStdHandle(int nStdHandle);
+
+        [DllImport("kernel32.dll")]
+        private static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+
+        [DllImport("kernel32.dll")]
+        private static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+
+        private const int STD_OUTPUT_HANDLE = -11;
+        private const uint ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
+
+        public static void EnableVirtualTerminalProcessing()
+        {
+            if (!IsWin) return;
+
+            var iStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
+            if (!GetConsoleMode(iStdOut, out uint outConsoleMode))
+            {
+                return;
+            }
+
+            outConsoleMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+            if (!SetConsoleMode(iStdOut, outConsoleMode))
+            {
+                // failed to set console mode
             }
         }
 
@@ -53,16 +89,17 @@ namespace PtyWeb
             }
             Console.WriteLine($"Debug File: [{DebugFilePath}]");
 #endif
-        }
-
-        public static Encoding GetTerminalEncoding()
-        {
-            var encoding = Encoding.UTF8;
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            // - `CultureInfo.CurrentCulture.TextInfo.OEMCodePage` 会受 CurrentCulture 的影响，可能不准确
+            // - `GetOEMCP()` 获取的是系统的 OEM 代码页，更加准确
+            try
             {
-                encoding = Encoding.GetEncoding(CultureInfo.CurrentCulture.TextInfo.OEMCodePage);
+                defaultEncoding = IsWin ? Encoding.GetEncoding((int)GetOEMCP()) : Encoding.UTF8;
             }
-            return encoding;
+            catch
+            {
+                // Fallback to UTF8 if OEM code page is not available
+                defaultEncoding = Encoding.UTF8;
+            }
         }
 
         public static void DebugWrite(string msg)
@@ -74,7 +111,7 @@ namespace PtyWeb
 #endif
         }
 
-        public static void DebugWriteLine(string msg = null)
+        public static void DebugWriteLine(string? msg = null)
         {
             DebugWrite((msg == null ? string.Empty : msg) + Environment.NewLine);
             // Console.WriteLine(msg);

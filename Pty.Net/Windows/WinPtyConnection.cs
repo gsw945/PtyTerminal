@@ -3,10 +3,11 @@
 
 namespace Pty.Net.Windows
 {
+    // using Microsoft.Win32.SafeHandles;
+    using Pty.Net.Windows.Native;
     using System;
     using System.Diagnostics;
     using System.IO;
-    using static Pty.Net.Windows.NativeMethods;
     using static Pty.Net.Windows.WinptyNativeInterop;
 
     /// <summary>
@@ -15,7 +16,7 @@ namespace Pty.Net.Windows
     internal class WinPtyConnection : IPtyConnection
     {
         private readonly IntPtr handle;
-        private readonly SafeProcessHandle processHandle;
+        private readonly Kernel32.SafeProcessHandle processHandle;
         private readonly Process process;
 
         /// <summary>
@@ -25,11 +26,11 @@ namespace Pty.Net.Windows
         /// <param name="writerStream">The writing side of the pty connection.</param>
         /// <param name="handle">A handle to the winpty instance.</param>
         /// <param name="processHandle">A handle to the spawned process.</param>
-        public WinPtyConnection(Stream readerStream, Stream writerStream, IntPtr handle, SafeProcessHandle processHandle)
+        public WinPtyConnection(Stream readerStream, Stream writerStream, IntPtr handle, Kernel32.SafeProcessHandle processHandle)
         {
             this.ReaderStream = readerStream;
             this.WriterStream = writerStream;
-            this.Pid = NativeMethods.GetProcessId(processHandle);
+            this.Pid = Kernel32.GetProcessId(processHandle);
 
             this.handle = handle;
             this.processHandle = processHandle;

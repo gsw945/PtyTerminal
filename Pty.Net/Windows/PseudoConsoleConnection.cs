@@ -3,12 +3,12 @@
 
 namespace Pty.Net.Windows
 {
+    using Pty.Net.Windows.Native;
     using System;
     using System.Diagnostics;
     using System.IO;
     using System.IO.Pipes;
     using System.Runtime.InteropServices;
-    using static Pty.Net.Windows.NativeMethods;
 
     /// <summary>
     /// A connection to a pseudoterminal spawned by native windows APIs.
@@ -17,17 +17,20 @@ namespace Pty.Net.Windows
     {
         private readonly Process process;
         private PseudoConsoleConnectionHandles handles;
+        private readonly bool useCustomDll;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PseudoConsoleConnection"/> class.
         /// </summary>
         /// <param name="handles">The set of handles associated with the pseudoconsole.</param>
-        public PseudoConsoleConnection(PseudoConsoleConnectionHandles handles)
+        /// <param name="customDll">Whether to use the custom ConPTY DLL.</param>
+        public PseudoConsoleConnection(PseudoConsoleConnectionHandles handles, bool customDll = false)
         {
             this.ReaderStream = new AnonymousPipeClientStream(PipeDirection.In, new Microsoft.Win32.SafeHandles.SafePipeHandle(handles.OutPipeOurSide.Handle, ownsHandle: false));
             this.WriterStream = new AnonymousPipeClientStream(PipeDirection.Out, new Microsoft.Win32.SafeHandles.SafePipeHandle(handles.InPipeOurSide.Handle, ownsHandle: false));
 
             this.handles = handles;
+            this.useCustomDll = customDll;
             this.process = Process.GetProcessById(this.Pid);
             this.process.Exited += this.Process_Exited;
             this.process.EnableRaisingEvents = true;
@@ -75,8 +78,16 @@ namespace Pty.Net.Windows
         /// <inheritdoc/>
         public void Resize(int cols, int rows)
         {
-            int hr = ResizePseudoConsole(this.handles.PseudoConsoleHandle, new Coord(cols, rows));
-            if (hr != S_OK)
+            int hr;
+            if (useCustomDll)
+            {
+                hr = ConPTYCustomInterop.ResizePseudoConsole(this.handles.PseudoConsoleHandle, new Kernel32.COORD(cols, rows));
+            }
+            else
+            {
+                hr = Kernel32.ResizePseudoConsole(this.handles.PseudoConsoleHandle.Handle, new Kernel32.COORD(cols, rows));
+            }
+            if (hr != Kernel32.S_OK)
             {
                 Marshal.ThrowExceptionForHR(hr);
             }
@@ -110,14 +121,14 @@ namespace Pty.Net.Windows
             /// <param name="pid">the process ID.</param>
             /// <param name="mainThreadHandle">the handle to the main thread.</param>
             public PseudoConsoleConnectionHandles(
-                SafePipeHandle inPipePseudoConsoleSide,
-                SafePipeHandle outPipePseudoConsoleSide,
-                SafePipeHandle inPipeOurSide,
-                SafePipeHandle outPipeOurSide,
-                SafePseudoConsoleHandle pseudoConsoleHandle,
-                SafeProcessHandle processHandle,
+                Kernel32.SafePipeHandle inPipePseudoConsoleSide,
+                Kernel32.SafePipeHandle outPipePseudoConsoleSide,
+                Kernel32.SafePipeHandle inPipeOurSide,
+                Kernel32.SafePipeHandle outPipeOurSide,
+                Kernel32.SafePseudoConsoleHandle pseudoConsoleHandle,
+                Kernel32.SafeProcessHandle processHandle,
                 int pid,
-                SafeThreadHandle mainThreadHandle)
+                Kernel32.SafeThreadHandle mainThreadHandle)
             {
                 this.InPipePseudoConsoleSide = inPipePseudoConsoleSide;
                 this.OutPipePseudoConsoleSide = outPipePseudoConsoleSide;
@@ -135,7 +146,7 @@ namespace Pty.Net.Windows
             /// <remarks>
             /// This pipe is connected to <see cref="OutPipeOurSide"/>.
             /// </remarks>
-            internal SafePipeHandle InPipePseudoConsoleSide { get; }
+            internal Kernel32.SafePipeHandle InPipePseudoConsoleSide { get; }
 
             /// <summary>
             /// Gets the output pipe on the pseudoconsole side.
@@ -143,7 +154,7 @@ namespace Pty.Net.Windows
             /// <remarks>
             /// This pipe is connected to <see cref="InPipeOurSide"/>.
             /// </remarks>
-            internal SafePipeHandle OutPipePseudoConsoleSide { get; }
+            internal Kernel32.SafePipeHandle OutPipePseudoConsoleSide { get; }
 
             /// <summary>
             /// Gets the input pipe on the local side.
@@ -151,7 +162,7 @@ namespace Pty.Net.Windows
             /// <remarks>
             /// This pipe is connected to <see cref="OutPipePseudoConsoleSide"/>.
             /// </remarks>
-            internal SafePipeHandle InPipeOurSide { get; }
+            internal Kernel32.SafePipeHandle InPipeOurSide { get; }
 
             /// <summary>
             /// Gets the output pipe on the local side.
@@ -159,17 +170,17 @@ namespace Pty.Net.Windows
             /// <remarks>
             /// This pipe is connected to <see cref="InPipePseudoConsoleSide"/>.
             /// </remarks>
-            internal SafePipeHandle OutPipeOurSide { get; }
+            internal Kernel32.SafePipeHandle OutPipeOurSide { get; }
 
             /// <summary>
             /// Gets the handle to the pseudoconsole.
             /// </summary>
-            internal SafePseudoConsoleHandle PseudoConsoleHandle { get; }
+            internal Kernel32.SafePseudoConsoleHandle PseudoConsoleHandle { get; }
 
             /// <summary>
             /// Gets the handle to the spawned process.
             /// </summary>
-            internal SafeProcessHandle ProcessHandle { get; }
+            internal Kernel32.SafeProcessHandle ProcessHandle { get; }
 
             /// <summary>
             /// Gets the process ID.
@@ -179,7 +190,7 @@ namespace Pty.Net.Windows
             /// <summary>
             /// Gets the handle to the main thread.
             /// </summary>
-            internal SafeThreadHandle MainThreadHandle { get; }
+            internal Kernel32.SafeThreadHandle MainThreadHandle { get; }
         }
     }
 }

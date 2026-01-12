@@ -54,6 +54,16 @@ namespace Pty.Net
         public bool ForceWinPty { get; set; }
 
         /// <summary>
+        /// Gets or sets a value indicating whether a custom ConPty DLL should be used.
+        /// <list type="bullet">
+        /// <item><description><c>null</c>: not specified; prefer system ConPTY first, then custom if available.</description></item>
+        /// <item><description><c>true</c>: prefer custom ConPTY first; fall back to system if available.</description></item>
+        /// <item><description><c>false</c>: prefer system ConPTY only; do not attempt custom.</description></item>
+        /// </list>
+        /// </summary>
+        public bool? UseCustomConPtyDll { get; set; }
+
+        /// <summary>
         /// Gets or sets the process' environment variables.
         /// </summary>
         public IDictionary<string, string> Environment { get; set; } = new Dictionary<string, string>();
