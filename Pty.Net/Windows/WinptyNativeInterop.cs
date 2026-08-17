@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license. See LICENSE file in the project root for full license information.
 
 namespace Pty.Net.Windows
@@ -118,40 +118,101 @@ namespace Pty.Net.Windows
             | WINPTY_SPAWN_FLAG_AUTO_SHUTDOWN
             | WINPTY_SPAWN_FLAG_EXIT_AFTER_SHUTDOWN;
 
+        /// <summary>
+        /// Gets the error code of a winpty error object.
+        /// </summary>
+        /// <param name="err">The winpty error object.</param>
+        /// <returns>The error code.</returns>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl)]
         public static extern int winpty_error_code(IntPtr err);
 
+        /// <summary>
+        /// Gets a human-readable message for a winpty error object.
+        /// </summary>
+        /// <param name="err">The winpty error object.</param>
+        /// <returns>The error message.</returns>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
         [return: MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(WinptyLpwstrMarshaler))]
         public static extern string winpty_error_msg(IntPtr err);
 
+        /// <summary>
+        /// Frees a winpty error object.
+        /// </summary>
+        /// <param name="err">The winpty error object.</param>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl)]
         public static extern void winpty_error_free(IntPtr err);
 
+        /// <summary>
+        /// Creates a winpty configuration object.
+        /// </summary>
+        /// <param name="agentFlags">Flags controlling agent behavior, e.g. <see cref="WINPTY_FLAG_COLOR_ESCAPES"/>.</param>
+        /// <param name="err">Receives a winpty error object on failure.</param>
+        /// <returns>The configuration handle, or null on failure.</returns>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr winpty_config_new(ulong agentFlags, out IntPtr err);
 
+        /// <summary>
+        /// Frees a winpty configuration object.
+        /// </summary>
+        /// <param name="cfg">The configuration handle.</param>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl)]
         public static extern void winpty_config_free(IntPtr cfg);
 
+        /// <summary>
+        /// Sets the initial terminal size of the winpty configuration.
+        /// </summary>
+        /// <param name="cfg">The configuration handle.</param>
+        /// <param name="cols">The number of columns.</param>
+        /// <param name="rows">The number of rows.</param>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl)]
         public static extern void winpty_config_set_initial_size(IntPtr cfg, int cols, int rows);
 
+        /// <summary>
+        /// Opens a winpty agent with the given configuration.
+        /// </summary>
+        /// <param name="cfg">The configuration handle.</param>
+        /// <param name="err">Receives a winpty error object on failure.</param>
+        /// <returns>The winpty instance handle, or null on failure.</returns>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr winpty_open(IntPtr cfg, out IntPtr err);
 
+        /// <summary>
+        /// Gets the name of the pipe used for the console input (conin) of the given winpty instance.
+        /// </summary>
+        /// <param name="wp">The winpty instance handle.</param>
+        /// <returns>The pipe name.</returns>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
         [return: MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(WinptyLpwstrMarshaler))]
         public static extern string winpty_conin_name(IntPtr wp);
 
+        /// <summary>
+        /// Gets the name of the pipe used for the console output (conout) of the given winpty instance.
+        /// </summary>
+        /// <param name="wp">The winpty instance handle.</param>
+        /// <returns>The pipe name.</returns>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
         [return: MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(WinptyLpwstrMarshaler))]
         public static extern string winpty_conout_name(IntPtr wp);
 
+        /// <summary>
+        /// Gets the name of the pipe used for the console error (conerr) of the given winpty instance.
+        /// </summary>
+        /// <param name="wp">The winpty instance handle.</param>
+        /// <returns>The pipe name.</returns>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
         [return: MarshalAs(UnmanagedType.CustomMarshaler, MarshalTypeRef = typeof(WinptyLpwstrMarshaler))]
         public static extern string winpty_conerr_name(IntPtr wp);
 
+        /// <summary>
+        /// Creates a winpty spawn configuration for a child process.
+        /// </summary>
+        /// <param name="spawnFlags">Flags controlling spawn behavior, e.g. <see cref="WINPTY_SPAWN_FLAG_AUTO_SHUTDOWN"/>.</param>
+        /// <param name="appname">The application to spawn.</param>
+        /// <param name="cmdline">The command line to pass to the application.</param>
+        /// <param name="cwd">The working directory of the child process.</param>
+        /// <param name="env">The environment block of the child process.</param>
+        /// <param name="err">Receives a winpty error object on failure.</param>
+        /// <returns>The spawn configuration handle, or null on failure.</returns>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Unicode)]
         public static extern IntPtr winpty_spawn_config_new(
             ulong spawnFlags,
@@ -161,9 +222,23 @@ namespace Pty.Net.Windows
             string env,
             out IntPtr err);
 
+        /// <summary>
+        /// Frees a winpty spawn configuration object.
+        /// </summary>
+        /// <param name="cfg">The spawn configuration handle.</param>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl)]
         public static extern void winpty_spawn_config_free(IntPtr cfg);
 
+        /// <summary>
+        /// Spawns a child process attached to the winpty instance.
+        /// </summary>
+        /// <param name="wp">The winpty instance handle.</param>
+        /// <param name="cfg">The spawn configuration handle.</param>
+        /// <param name="process_handle">Receives the handle of the spawned process.</param>
+        /// <param name="thread_handle">Receives the handle of the spawned process' main thread.</param>
+        /// <param name="create_process_error">Receives the Win32 error code if process creation failed.</param>
+        /// <param name="err">Receives a winpty error object on failure.</param>
+        /// <returns>True if the process was spawned successfully.</returns>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl)]
         public static extern bool winpty_spawn(
             IntPtr wp,
@@ -173,9 +248,21 @@ namespace Pty.Net.Windows
             out int create_process_error,
             out IntPtr err);
 
+        /// <summary>
+        /// Resizes the terminal of the given winpty instance.
+        /// </summary>
+        /// <param name="wp">The winpty instance handle.</param>
+        /// <param name="cols">The number of columns.</param>
+        /// <param name="rows">The number of rows.</param>
+        /// <param name="err">Receives a winpty error object on failure.</param>
+        /// <returns>True if the resize succeeded.</returns>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl)]
         public static extern bool winpty_set_size(IntPtr wp, int cols, int rows, out IntPtr err);
 
+        /// <summary>
+        /// Frees a winpty instance and its associated resources.
+        /// </summary>
+        /// <param name="wp">The winpty instance handle.</param>
         [DllImport(WinptyNativeDll, CallingConvention = CallingConvention.Cdecl)]
         public static extern void winpty_free(IntPtr wp);
     }

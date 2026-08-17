@@ -1,0 +1,19 @@
+﻿<Solution>
+  <Folder Name="/examples/">
+    <Project Path="examples/PtyCli/PtyCli.csproj" />
+    <Project Path="examples/PtySession/PtySession.csproj" />
+    <Project Path="examples/PtyWeb.AspNetCore/PtyWeb.AspNetCore.csproj" />
+    <Project Path="examples/PtyWeb.EmbedIO/PtyWeb.EmbedIO.csproj" />
+    <Project Path="examples/PtyWeb.SignalR/PtyWeb.SignalR.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="README.md" />
+    <File Path="README_zh.md" />
+    <Folder Name="/Solution Items/assets/">
+      <File Path="assets/console-demo.png" />
+      <File Path="assets/web-demo-01.png" />
+      <File Path="assets/web-demo-02.png" />
+    </Folder>
+  </Folder>
+  <Project Path="Pty.Net/Pty.Net.csproj" />
+</Solution>

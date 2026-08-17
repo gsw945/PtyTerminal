@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>PtyWeb.AspNetCore</AssemblyName>
+    <RootNamespace>PtyWeb.AspNetCore</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Pty.Net\Pty.Net.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Also copy wwwroot next to the executable so the demo works when launched
+         directly (not only via dotnet run), including in Production environment. -->
+    <Content Update="wwwroot\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>

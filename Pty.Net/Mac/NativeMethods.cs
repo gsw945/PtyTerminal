@@ -13,11 +13,29 @@ namespace Pty.Net.Mac
     /// </summary>
     internal static class NativeMethods
     {
+        /// <summary>
+        /// File descriptor of standard input.
+        /// </summary>
         internal const int STDIN_FILENO = 0;
+
+        /// <summary>
+        /// tcsetattr action: apply the change immediately (TCSANOW).
+        /// </summary>
         internal const int TCSANOW = 0;
 
+        /// <summary>
+        /// ioctl request that sends a signal to the foreground process group of a pty (TIOCSIG).
+        /// </summary>
         internal const uint TIOCSIG = 0x2000_745F;
+
+        /// <summary>
+        /// ioctl request that sets the terminal window size (TIOCSWINSZ).
+        /// </summary>
         internal const ulong TIOCSWINSZ = 0x8008_7467;
+
+        /// <summary>
+        /// Hangup signal (SIGHUP).
+        /// </summary>
         internal const int SIGHUP = 1;
 
         private const string LibSystem = "libSystem.dylib";
@@ -177,32 +195,81 @@ namespace Pty.Net.Mac
             VSTATUS = 18,
         }
 
-        // int cfsetispeed(struct termios *, speed_t);
+        /// <summary>
+        /// Sets the input baud rate of a termios structure.
+        /// </summary>
+        /// <param name="termios">The termios structure.</param>
+        /// <param name="speed">The speed to set.</param>
+        /// <returns>Zero on success.</returns>
         [DllImport(LibSystem)]
         internal static extern int cfsetispeed(ref Termios termios, IntPtr speed);
 
-        // int cfsetospeed(struct termios *, speed_t);
+        /// <summary>
+        /// Sets the output baud rate of a termios structure.
+        /// </summary>
+        /// <param name="termios">The termios structure.</param>
+        /// <param name="speed">The speed to set.</param>
+        /// <returns>Zero on success.</returns>
         [DllImport(LibSystem)]
         internal static extern int cfsetospeed(ref Termios termios, IntPtr speed);
 
-        // pid_t forkpty(int * master, char * aworker, struct termios *, struct winsize *);
+        /// <summary>
+        /// Opens a pseudo terminal and forks a child process attached to it.
+        /// </summary>
+        /// <param name="master">Receives the file descriptor of the master side of the pty.</param>
+        /// <param name="name">Receives the path of the slave side, or null if not needed.</param>
+        /// <param name="termp">Terminal attributes for the slave side.</param>
+        /// <param name="winsize">Initial window size of the slave side.</param>
+        /// <returns>The child process id in the parent, zero in the child, or -1 on failure.</returns>
         [DllImport(LibSystem, SetLastError = true)]
         internal static extern int forkpty(ref int master, StringBuilder? name, ref Termios termp, ref WinSize winsize);
 
-        // pid_t waitpid(pid_t, int *, int)
+        /// <summary>
+        /// Waits for a child process to change state.
+        /// </summary>
+        /// <param name="pid">The process id to wait for.</param>
+        /// <param name="status">Receives the process status.</param>
+        /// <param name="options">Wait options.</param>
+        /// <returns>The process id, or -1 on failure.</returns>
         [DllImport(LibSystem, SetLastError = true)]
         internal static extern int waitpid(int pid, ref int status, int options);
 
-        // int ioctl(int fd, unsigned long request, ...)
+        /// <summary>
+        /// Performs an ioctl request that takes an integer argument.
+        /// </summary>
+        /// <param name="fd">The file descriptor.</param>
+        /// <param name="request">The ioctl request code.</param>
+        /// <param name="data">The integer argument.</param>
+        /// <returns>Zero on success, or -1 on failure.</returns>
         [DllImport(LibSystem, SetLastError = true)]
         internal static extern int ioctl(int fd, ulong request, int data);
 
+        /// <summary>
+        /// Performs an ioctl request that takes a window size argument.
+        /// </summary>
+        /// <param name="fd">The file descriptor.</param>
+        /// <param name="request">The ioctl request code.</param>
+        /// <param name="winSize">The window size argument.</param>
+        /// <returns>Zero on success, or -1 on failure.</returns>
         [DllImport(LibSystem, SetLastError = true)]
         internal static extern int ioctl(int fd, ulong request, ref WinSize winSize);
 
+        /// <summary>
+        /// Sends a signal to a process.
+        /// </summary>
+        /// <param name="pid">The process id.</param>
+        /// <param name="signal">The signal to send.</param>
+        /// <returns>Zero on success, or -1 on failure.</returns>
         [DllImport(LibSystem, SetLastError = true)]
         internal static extern int kill(int pid, int signal);
 
+        /// <summary>
+        /// Replaces the current process image with the given executable, using the
+        /// supplied environment. Only valid in a forked child process.
+        /// </summary>
+        /// <param name="file">The executable to run.</param>
+        /// <param name="args">The argument vector (null-terminated).</param>
+        /// <param name="environment">The environment variables to set before exec.</param>
         internal static void execvpe(string file, string?[] args, IDictionary<string, string> environment)
         {
             if (environment != null)
@@ -235,13 +302,21 @@ namespace Pty.Net.Mac
             }
         }
 
-        // int int execvpe(const char *file, char *const argv[],char *const envp[]);
+        /// <summary>
+        /// Replaces the current process image with the given executable (execvp).
+        /// </summary>
+        /// <param name="file">The executable to run.</param>
+        /// <param name="args">The argument vector (null-terminated).</param>
+        /// <returns>-1 on failure; never returns on success.</returns>
         [DllImport(LibSystem, SetLastError = true)]
         private static extern int execvp(
             [MarshalAs(UnmanagedType.LPStr)] string file,
             [MarshalAs(UnmanagedType.LPArray, ArraySubType = UnmanagedType.LPStr)] string?[] args);
 
-        // char ***_NSGetEnviron(void);
+        /// <summary>
+        /// Gets a pointer to the current process' environment array (char ***_NSGetEnviron).
+        /// </summary>
+        /// <returns>A pointer to the environment array.</returns>
         [DllImport(LibSystem)]
         private static extern IntPtr _NSGetEnviron();
 

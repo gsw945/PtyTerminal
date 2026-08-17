@@ -67,5 +67,23 @@ namespace Pty.Net
         /// Gets or sets the process' environment variables.
         /// </summary>
         public IDictionary<string, string> Environment { get; set; } = new Dictionary<string, string>();
+
+        /// <summary>
+        /// Creates a shallow copy of this options instance.
+        /// </summary>
+        /// <returns>A copy that shares the same <see cref="Environment"/> reference.</returns>
+        internal PtyOptions Copy() => new PtyOptions
+        {
+            Name = this.Name,
+            Rows = this.Rows,
+            Cols = this.Cols,
+            Cwd = this.Cwd,
+            App = this.App,
+            CommandLine = this.CommandLine,
+            VerbatimCommandLine = this.VerbatimCommandLine,
+            ForceWinPty = this.ForceWinPty,
+            UseCustomConPtyDll = this.UseCustomConPtyDll,
+            Environment = this.Environment,
+        };
     }
 }

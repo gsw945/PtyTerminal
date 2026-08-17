@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "PtySession": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:18947;http://localhost:18949"
+    }
+  }
+}

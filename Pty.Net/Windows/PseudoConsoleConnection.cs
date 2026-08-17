@@ -9,6 +9,7 @@ namespace Pty.Net.Windows
     using System.IO;
     using System.IO.Pipes;
     using System.Runtime.InteropServices;
+    using System.Threading;
 
     /// <summary>
     /// A connection to a pseudoterminal spawned by native windows APIs.
@@ -18,6 +19,7 @@ namespace Pty.Net.Windows
         private readonly Process process;
         private PseudoConsoleConnectionHandles handles;
         private readonly bool useCustomDll;
+        private int disposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="PseudoConsoleConnection"/> class.
@@ -32,8 +34,8 @@ namespace Pty.Net.Windows
             this.handles = handles;
             this.useCustomDll = customDll;
             this.process = Process.GetProcessById(this.Pid);
-            this.process.Exited += this.Process_Exited;
             this.process.EnableRaisingEvents = true;
+            this.process.Exited += this.Process_Exited;
         }
 
         /// <inheritdoc/>
@@ -49,13 +51,21 @@ namespace Pty.Net.Windows
         public int Pid => this.handles.Pid;
 
         /// <inheritdoc/>
-        public int ExitCode => this.process.ExitCode;
+        public int ExitCode => this.process.HasExited ? this.process.ExitCode : 0;
 
         /// <inheritdoc/>
         public void Dispose()
         {
+            if (Interlocked.Exchange(ref this.disposed, 1) != 0)
+            {
+                return;
+            }
+
             this.ReaderStream?.Dispose();
             this.WriterStream?.Dispose();
+
+            this.process.Exited -= this.Process_Exited;
+            this.process.Dispose();
 
             if (this.handles != null)
             {
@@ -72,7 +82,10 @@ namespace Pty.Net.Windows
         /// <inheritdoc/>
         public void Kill()
         {
-            this.process.Kill();
+            if (!this.process.HasExited)
+            {
+                this.process.Kill();
+            }
         }
 
         /// <inheritdoc/>
@@ -101,7 +114,7 @@ namespace Pty.Net.Windows
 
         private void Process_Exited(object sender, EventArgs e)
         {
-            this.ProcessExited?.Invoke(this, new PtyExitedEventArgs(this.process.ExitCode));
+            this.ProcessExited?.Invoke(this, new PtyExitedEventArgs(this.process.HasExited ? this.process.ExitCode : 0));
         }
 
         /// <summary>

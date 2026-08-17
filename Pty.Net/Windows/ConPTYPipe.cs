@@ -44,16 +44,6 @@
             disposed = true;
         }
 
-        public void MakeReadNoninheritable(IntPtr processHandle)
-        {
-            MakeHandleNoninheritable(ref read, processHandle);
-        }
-
-        public void MakeWriteNoninheritable(IntPtr processHandle)
-        {
-            MakeHandleNoninheritable(ref write, processHandle);
-        }
-
         public void Dispose()
         {
             Dispose(true);
@@ -69,30 +59,6 @@
             read?.Dispose();
             write?.Dispose();
             disposed = true;
-        }
-
-        private void MakeHandleNoninheritable(ref Kernel32.SafePipeHandle handler, IntPtr processHandle)
-        {
-            // Create noninheritable read handle and close the inheritable read handle.
-            IntPtr handleClone;
-            if (!Kernel32.DuplicateHandle(
-                    processHandle,
-                    handler.DangerousGetHandle(),
-                    processHandle,
-                    out handleClone,
-                    0,
-                    false,
-                    Constants.DUPLICATE_SAME_ACCESS))
-            {
-                throw new Win32Exception(
-                    "Couldn't duplicate the handle.",
-                    Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error()));
-            }
-
-            // We need to dispose the old handle properly and replace it with the new one.
-            // The Original SafePipeHandle "handler" owns the handle, so Disposing it closes the old handle.
-            handler.Dispose();
-            handler = new Kernel32.SafePipeHandle(handleClone, true);
         }
     }
 }

@@ -1,11 +1,11 @@
-﻿using EmbedIO.WebSockets;
+using EmbedIO.WebSockets;
 using Swan.Formatters;
 using Swan.Logging;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace PtyWeb
+namespace PtyWeb.EmbedIO
 {
     public class WebSocketPtyModule : WebSocketModule
     {
@@ -28,14 +28,14 @@ namespace PtyWeb
 
         protected override Task OnMessageReceivedAsync(IWebSocketContext context, byte[] buffer, IWebSocketReceiveResult result)
         {
+            Utils.DebugWriteLine($"OnMessageReceived: {context.Id}, type={result.MessageType}, len={buffer.Length}");
             if (terminals.TryGetValue(context.Id, out var terminal))
             {
                 if (result.MessageType == (int)System.Net.WebSockets.WebSocketMessageType.Binary)
                 {
-                    // Binary 类型为自定义指令
+                    // Binary 类型为自定义指令(如 resize)
                     try
                     {
-                        // 指令解析
                         var strData = System.Text.Encoding.UTF8.GetString(buffer);
                         var ptyWebAction = Json.Deserialize<PtyWebAction<Dictionary<string, int>>>(strData);
                         if (ptyWebAction != null)
@@ -44,17 +44,17 @@ namespace PtyWeb
                             {
                                 case PtyWebAction<Dictionary<string, int>>.ActionType.resize:
                                     {
-                                        // refer: https://stackoverflow.com/questions/15099523/changing-console-windows-size-throws-argumentoutofrangeexception/15099723#15099723
                                         if (
                                             ptyWebAction.data.TryGetValue("cols", out var cols) &&
                                             ptyWebAction.data.TryGetValue("rows", out var rows) &&
                                             cols > 0 && rows > 0 &&
-                                            cols <= System.Console.LargestWindowWidth && rows < System.Console.LargestWindowHeight
+                                            cols <= 500 && rows <= 500
                                         )
                                         {
                                             terminal.Resize(cols, rows);
                                         }
                                     }
+
                                     break;
                                 default:
                                     break;
@@ -65,21 +65,25 @@ namespace PtyWeb
                     {
                         ex.Debug(nameof(WebSocketPtyModule), ex.Message);
                     }
+
                     return Task.CompletedTask;
                 }
-                // xterm-AttachAddon发送的数据
-                return terminal.SendDataAsync(buffer);
+
+                // xterm-AttachAddon发送的数据(文本帧)
+                return terminal.SendDataAsync(buffer).AsTask();
             }
+
             return Task.CompletedTask;
-            // return SendToOthersAsync(context, Encoding.GetString(buffer));
         }
 
         protected override Task OnClientConnectedAsync(IWebSocketContext context)
         {
+            Utils.DebugWriteLine($"OnClientConnected: {context.Id}");
             if (terminals.TryAdd(context.Id, new WebTerminal(context, this)))
             {
                 Task.Run(terminals[context.Id].Run, terminals[context.Id].CTS.Token);
             }
+
             return base.OnClientConnectedAsync(context);
         }
 
@@ -89,12 +93,8 @@ namespace PtyWeb
             {
                 terminal.CTS.Cancel();
             }
-            return base.OnClientDisconnectedAsync(context);
-        }
 
-        private Task SendToOthersAsync(IWebSocketContext context, string payload)
-        {
-            return BroadcastAsync(payload, c => c != context);
+            return base.OnClientDisconnectedAsync(context);
         }
     }
 }

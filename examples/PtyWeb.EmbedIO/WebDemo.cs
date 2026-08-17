@@ -1,4 +1,4 @@
-﻿using EmbedIO;
+using EmbedIO;
 using EmbedIO.Actions;
 using EmbedIO.Files;
 using EmbedIO.WebApi;
@@ -9,7 +9,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace PtyWeb
+namespace PtyWeb.EmbedIO
 {
     public class WebDemo
     {
@@ -44,12 +44,13 @@ namespace PtyWeb
                 var assemblyLocation = typeof(WebDemo).Assembly.Location;
                 if (string.IsNullOrEmpty(assemblyLocation))
                 {
-                    assemblyLocation = Process.GetCurrentProcess().MainModule.FileName;
+                    assemblyLocation = Process.GetCurrentProcess().MainModule?.FileName ?? string.Empty;
                 }
-                var assemblyPath = Path.GetDirectoryName(assemblyLocation);
+
+                var assemblyPath = Path.GetDirectoryName(assemblyLocation) ?? AppContext.BaseDirectory;
 
 #if DEBUG
-                return Path.Combine(Directory.GetParent(assemblyPath).Parent.Parent.FullName, "html");
+                return Path.Combine(Directory.GetParent(assemblyPath)!.Parent!.Parent!.FullName, "html");
 #else
                 return Path.Combine(assemblyPath, "html");
 #endif
@@ -65,8 +66,7 @@ namespace PtyWeb
                 .WithModule(new ActionModule("/error", HttpVerbs.Any, ctx => ctx.SendDataAsync(new { Message = "Error" })))
                 .WithWebApi("/api", m => m.WithController<DemoController>())
                 .WithModule(new WebSocketPtyModule("/terminal"))
-                .WithStaticFolder("/", HtmlRootPath, true, m => m.WithContentCaching(UseFileCache)) // Add static files after other modules to avoid conflicts
-                ;
+                .WithStaticFolder("/", HtmlRootPath, true, m => m.WithContentCaching(UseFileCache)); // Add static files after other modules to avoid conflicts
 
             // Listen for state changes.
             server.StateChanged += (s, e) => $"WebServer New State: {e.NewState}".Info();

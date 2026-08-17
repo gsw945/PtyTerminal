@@ -1,6 +1,7 @@
 ﻿namespace Pty.Net.Windows.Native
 {
     using Microsoft.Win32.SafeHandles;
+    using Pty.Net.Windows;
     using System;
     using System.ComponentModel;
     using System.Diagnostics;
@@ -14,8 +15,6 @@
 
         internal const int S_OK = 0;
         internal const int STD_OUTPUT_HANDLE = -11;
-        internal const uint ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004;
-        internal const uint DISABLE_NEWLINE_AUTO_RETURN = 0x0008;
 
         internal const int SM_SERVERR2 = 89;
         internal const uint VER_SUITE_WH_SERVER = 0x00008000;
@@ -24,8 +23,6 @@
 
         // dwCreationFlags for CreateProcess
         internal const int CREATE_UNICODE_ENVIRONMENT = 0x00000400;
-        internal const int EXTENDED_STARTUPINFO_PRESENT = 0x00080000;
-        internal const int STARTF_USESTDHANDLES = 0x00000100;
 
         // internal const uint PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = 0x00020016;
         internal static readonly IntPtr PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = new IntPtr(
@@ -39,17 +36,7 @@
         public static extern int GetProcessId(SafeProcessHandle hProcess);
 
         [DllImport(DllName, SetLastError = true)]
-        public static extern bool DuplicateHandle(IntPtr hSourceProcessHandle,
-           IntPtr hSourceHandle,
-           IntPtr hTargetProcessHandle,
-           out IntPtr lpTargetHandle,
-           uint dwDesiredAccess,
-           bool bInheritHandle,
-           uint dwOptions);
-
         [return: MarshalAs(UnmanagedType.Bool)]
-        [DllImport(DllName, SetLastError = true)]
-        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
         internal static extern bool CloseHandle(IntPtr hObject);
 
         [DllImport(DllName, SetLastError = true)]
@@ -256,7 +243,7 @@
             internal void InitAttributeListAttachedToConPTY(SafePseudoConsoleHandle handle)
             {
                 this.StartupInfo.cb = Marshal.SizeOf<STARTUPINFOEX>();
-                this.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
+                this.StartupInfo.dwFlags = Constants.STARTF_USESTDHANDLES;
 
                 const int AttributeCount = 1;
                 var size = IntPtr.Zero;

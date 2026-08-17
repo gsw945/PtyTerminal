@@ -23,7 +23,7 @@ function Get-Version {
 
 function New-PtyNupkgVerifyProject {
     if (-not (Test-Path $projDir)) {
-        dotnet new console -n NupkgVerify -o $projDir -f net8.0;
+        dotnet new console -n NupkgVerify -o $projDir -f net10.0;
     }
 }
 
@@ -101,7 +101,7 @@ function Test-PtyNupkgSimple {
     dotnet add package PTY -v $ver -s $releaseDir;
     dotnet build;
     Pop-Location;
-    $out = Join-Path $projDir "bin\Debug\net8.0\deps\conpty\x64\conpty.dll";
+    $out = Join-Path $projDir "bin\Debug\net10.0\deps\conpty\x64\conpty.dll";
     if (Test-Path $out) { "OK: copied -> $out" } else { "MISSING: $out" }
 }
 
@@ -129,7 +129,7 @@ function Test-PtyNupkgFull {
     Pop-Location;
 
     # 5) 验证输出目录是否出现 deps，并检查关键文件
-    $p = Join-Path $projDir "bin\Debug\net8.0\deps";
+    $p = Join-Path $projDir "bin\Debug\net10.0\deps";
     if (Test-Path $p) {
         "deps exists";
         $expected = @(

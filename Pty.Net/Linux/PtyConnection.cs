@@ -16,8 +16,9 @@ namespace Pty.Net.Linux
         /// </summary>
         /// <param name="controller">The fd of the pty controller.</param>
         /// <param name="pid">The id of the spawned process.</param>
-        public PtyConnection(int controller, int pid)
-            : base(controller, pid)
+        /// <param name="trace">The tracer to trace execution with.</param>
+        public PtyConnection(int controller, int pid, TraceSource trace)
+            : base(controller, pid, trace)
         {
         }
 

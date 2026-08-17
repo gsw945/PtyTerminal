@@ -28,14 +28,19 @@ namespace Pty.Net
             PtyOptions options,
             CancellationToken cancellationToken)
         {
+            if (options == null)
+            {
+                throw new ArgumentNullException(nameof(options));
+            }
+
             if (string.IsNullOrEmpty(options.App))
             {
-                throw new ArgumentNullException(nameof(options.App));
+                throw new ArgumentException("A terminal app path must be specified.", nameof(options.App));
             }
 
             if (string.IsNullOrEmpty(options.Cwd))
             {
-                throw new ArgumentNullException(nameof(options.Cwd));
+                throw new ArgumentException("A working directory must be specified.", nameof(options.Cwd));
             }
 
             if (options.CommandLine == null)
@@ -48,15 +53,18 @@ namespace Pty.Net
                 throw new ArgumentNullException(nameof(options.Environment));
             }
 
+            // Merge the platform specific environment with the caller's environment.
+            // A copy of the options is used so the caller's options object is never mutated.
             IDictionary<string, string> environment = MergeEnvironment(PlatformServices.PtyEnvironment, null);
             environment = MergeEnvironment(options.Environment, environment);
 
-            options.Environment = environment;
+            PtyOptions mergedOptions = options.Copy();
+            mergedOptions.Environment = environment;
 
-            return PlatformServices.PtyProvider.StartTerminalAsync(options, Trace, cancellationToken);
+            return PlatformServices.PtyProvider.StartTerminalAsync(mergedOptions, Trace, cancellationToken);
         }
 
-        private static IDictionary<string, string> MergeEnvironment(IDictionary<string, string> enviromentToMerge, IDictionary<string, string>? environment)
+        private static IDictionary<string, string> MergeEnvironment(IDictionary<string, string> environmentToMerge, IDictionary<string, string>? environment)
         {
             if (environment == null)
             {
@@ -67,7 +75,7 @@ namespace Pty.Net
                 }
             }
 
-            foreach (var kvp in enviromentToMerge)
+            foreach (var kvp in environmentToMerge)
             {
                 if (string.IsNullOrEmpty(kvp.Value))
                 {

@@ -1,4 +1,4 @@
-﻿namespace PtyWeb
+namespace PtyWeb.EmbedIO
 {
     public class PtyWebAction<T>
     {
@@ -8,6 +8,6 @@
         }
 
         public ActionType action { get; set; }
-        public T data { get; set; }
+        public T data { get; set; } = default!;
     }
 }

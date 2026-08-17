@@ -1,0 +1,283 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <meta name="author" content="gsw945" />
+    <title>PtyWeb.ASPNetCore - WebSocket Demo</title>
+    <link rel="shortcut icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGBgAAAABQABpfZFQAAAAABJRU5ErkJggg==" />
+    <link href="https://cdn.jsdelivr.net/npm/@xterm/xterm@6.0.0/css/xterm.min.css" type="text/css" rel="stylesheet" />
+    <style type="text/css">
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            background-color: #1e1e1e;
+            overflow: hidden;
+        }
+        #terminal-container {
+            height: calc(100vh - 24px);
+            width: 100vw;
+        }
+        #status-bar {
+            height: 24px;
+            line-height: 24px;
+            padding: 0 8px;
+            background-color: #333333;
+            color: #cccccc;
+            font-family: Consolas, monospace;
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+            #search-bar {
+            position: fixed;
+            top: 8px;
+            right: 8px;
+            z-index: 10;
+            display: flex;
+            gap: 4px;
+            padding: 4px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 4px;
+        }
+        #search-input {
+            width: 160px;
+            border: 1px solid #555;
+            background: #222;
+            color: #fff;
+            padding: 2px 6px;
+        }
+        #search-bar button {
+            border: 1px solid #555;
+            background: #333;
+            color: #fff;
+            cursor: pointer;
+        }</style>
+</head>
+<body>
+    <!-- search bar -->
+    <div id="search-bar">
+        <input id="search-input" type="text" placeholder="Search" spellcheck="false" />
+        <button id="search-prev" title="Previous">&#9650;</button>
+        <button id="search-next" title="Next">&#9660;</button>
+    </div>
+    <div id="terminal-container"></div>
+    <div id="status-bar">connecting ...</div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@6.0.0/lib/xterm.min.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.11.0/lib/addon-fit.min.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-attach@0.12.0/lib/addon-attach.min.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-search@0.16.0/lib/addon-search.min.js" type="text/javascript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-webgl@0.19.0/lib/addon-webgl.min.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        (function () {
+            var statusBar = document.getElementById('status-bar');
+
+            function setStatus(text) {
+                statusBar.textContent = text;
+                console.log('[status]:', text);
+            }
+
+            var term = new Terminal({
+                cols: 80,
+                rows: 30,
+                cursorBlink: true,
+                cursorStyle: 'underline',
+                rendererType: 'canvas',
+                theme: {
+                    background: '#1e1e1e',
+                    foreground: '#d4d4d4'
+                }
+            });
+
+            var fitAddon = new FitAddon.FitAddon();
+            term.loadAddon(fitAddon);
+
+            // 搜索插件
+            var searchAddon = new SearchAddon.SearchAddon();
+            term.loadAddon(searchAddon);
+
+            // WebGL 渲染加速插件（环境不支持时自动回退 canvas）
+            try {
+                var webglAddon = new WebglAddon.WebglAddon();
+                webglAddon.onContextLoss(function (e) {
+                    webglAddon.dispose();
+                });
+                term.loadAddon(webglAddon);
+            } catch (e) {
+                console.warn('WebGL renderer unavailable, falling back to canvas.', e);
+            }
+
+            // 搜索功能（Ctrl+F 聚焦搜索框，Enter/按钮查找）
+            var searchInput = document.getElementById('search-input');
+            function doSearch(forward) {
+                var query = searchInput.value;
+                if (!query) {
+                    return;
+                }
+                if (forward) {
+                    searchAddon.findNext(query);
+                } else {
+                    searchAddon.findPrevious(query);
+                }
+            }
+            searchInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    doSearch(true);
+                }
+            });
+            document.getElementById('search-next').addEventListener('click', function () {
+                doSearch(true);
+            });
+            document.getElementById('search-prev').addEventListener('click', function () {
+                doSearch(false);
+            });
+
+            term.open(document.getElementById('terminal-container'), true);
+            term.focus();
+            fitAddon.fit();
+
+            var schema = (/^https/ig).test(document.location.protocol) ? 'wss' : 'ws';
+            var url = schema + '://' + document.location.host + '/terminal';
+            var socket = new WebSocket(url);
+
+            // xterm attach addon: forwards keystrokes as text frames, receives binary output frames
+            var attachAddon = null;
+
+            socket.addEventListener('open', function (event) {
+                setStatus('connected: ' + url + ' (' + term.cols + 'x' + term.rows + ')');
+
+                attachAddon = new AttachAddon.AttachAddon(socket);
+                term.loadAddon(attachAddon);
+
+                // 限制上报频率
+                notifyInterval = setInterval(function () {
+                    if (newestSize[0] != latestNotifySize[0] || newestSize[1] != latestNotifySize[1]) {
+                        resizeNotify(newestSize[0], newestSize[1]);
+                    }
+                }, 333);
+            });
+
+            socket.addEventListener('close', function (event) {
+                clearNotify();
+                setStatus('closed');
+                term.write('\r\n\x1b[31m[connection closed]\x1b[0m\r\n');
+            });
+
+            socket.addEventListener('error', function (event) {
+                clearNotify();
+                setStatus('error: ' + event.message);
+            });
+
+            // 控制键盘按键是否被xterm捕获
+            term.attachCustomKeyEventHandler(function (event) {
+                // Ctrl+F 聚焦搜索框（浏览器查找功能被 xterm 占用，这里用插件替代）
+                if (event.ctrlKey && event.key === 'f') {
+                    event.preventDefault();
+                    searchInput.focus();
+                    searchInput.select();
+                    return false;
+                }
+                // 只有当WebSocket连接后才允许xterm捕获按键
+                return socket.readyState === WebSocket.OPEN;
+            });
+
+            var notifyInterval = null;
+            var latestNotifySize = [0, 0];
+            var newestSize = [term.cols, term.rows];
+
+            function clearNotify() {
+                if (notifyInterval !== null) {
+                    clearInterval(notifyInterval);
+                    notifyInterval = null;
+                }
+            }
+
+            function resizeNotify(cols, rows) {
+                if (socket.readyState === WebSocket.OPEN) {
+                    latestNotifySize = [cols, rows];
+                    socket.send(prepareData({
+                        action: 'resize',
+                        data: { cols: cols, rows: rows }
+                    }, true));
+                }
+            }
+
+            term.onResize(function (size) {
+                newestSize = [size.cols, size.rows];
+                if (socket.readyState === WebSocket.OPEN) {
+                    setStatus('connected (' + size.cols + 'x' + size.rows + ')');
+                }
+            });
+
+            window.addEventListener('resize', function () {
+                fitAddon.fit();
+            });
+
+            function TrimChar(str, char2Remove) {
+                while (str.charAt(0) == char2Remove) {
+                    str = str.substring(1);
+                }
+                while (str.charAt(str.length - 1) == char2Remove) {
+                    str = str.substring(0, str.length - 1);
+                }
+                return str;
+            }
+
+            function Utf8ArrayToStr(array) {
+                var out = '', i = 0, len = array.length, c, char2, char3;
+                while (i < len) {
+                    c = array[i++];
+                    switch (c >> 4) {
+                        case 0: case 1: case 2: case 3: case 4: case 5: case 6: case 7:
+                            out += String.fromCharCode(c);
+                            break;
+                        case 12: case 13:
+                            char2 = array[i++];
+                            out += String.fromCharCode(((c & 0x1f) << 6) | (char2 & 0x3f));
+                            break;
+                        case 14:
+                            char2 = array[i++];
+                            char3 = array[i++];
+                            out += String.fromCharCode(((c & 0x0f) << 12) | ((char2 & 0x3f) << 6) | ((char3 & 0x3f) << 0));
+                            break;
+                        default:
+                            break;
+                    }
+                }
+                return out;
+            }
+
+            function JSON2Array(json) {
+                var str = JSON.stringify(json, null, 0);
+                var arr = [];
+                for (var i = 0; i < str.length; i++) {
+                    var code = str.charCodeAt(i);
+                    var encoded = encodeURIComponent(str[i]);
+                    if (encoded.indexOf('%') >= 0) {
+                        encoded = TrimChar(encoded, '%');
+                        var codeList = encoded.split('%').map(function (item) { return parseInt(item, 16); });
+                        for (var j = 0; j < codeList.length; j++) {
+                            arr.push(codeList[j]);
+                        }
+                    } else {
+                        arr.push(code);
+                    }
+                }
+                return new Uint8Array(arr).buffer;
+            }
+
+            function prepareData(data, isBinary) {
+                if (!data) {
+                    return '';
+                }
+                return isBinary ? JSON2Array(data) : JSON.stringify(data, null, 0);
+            }
+        })();
+    </script>
+</body>
+</html>

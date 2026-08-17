@@ -42,12 +42,10 @@
 
         public static Kernel32.SafePseudoConsoleHandle Create(Kernel32.COORD coord, Kernel32.SafePipeHandle inputReadSide, Kernel32.SafePipeHandle outputWriteSide, bool customDll = false)
         {
-            int createResult;
             IntPtr hPC = IntPtr.Zero;
             var pseudoConsoleHandle = new Kernel32.SafePseudoConsoleHandle();
 
-            // Run CreatePseudoConsole* in a CER to make sure we don't leak handles.
-            System.Runtime.CompilerServices.RuntimeHelpers.PrepareConstrainedRegions();
+            int createResult;
             if (customDll)
             {
                 createResult = ConPTYCustomInterop.CreatePseudoConsole(

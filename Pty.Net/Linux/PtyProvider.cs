@@ -70,7 +70,7 @@ namespace Pty.Net.Linux
             }
 
             // We have forked the terminal
-            return Task.FromResult<IPtyConnection>(new PtyConnection(controller, pid));
+            return Task.FromResult<IPtyConnection>(new PtyConnection(controller, pid, trace));
         }
     }
 }

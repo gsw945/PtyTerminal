@@ -3,11 +3,11 @@
 
 namespace Pty.Net.Windows
 {
-    // using Microsoft.Win32.SafeHandles;
     using Pty.Net.Windows.Native;
     using System;
     using System.Diagnostics;
     using System.IO;
+    using System.Threading;
     using static Pty.Net.Windows.WinptyNativeInterop;
 
     /// <summary>
@@ -18,6 +18,7 @@ namespace Pty.Net.Windows
         private readonly IntPtr handle;
         private readonly Kernel32.SafeProcessHandle processHandle;
         private readonly Process process;
+        private int disposed;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="WinPtyConnection"/> class.
@@ -35,8 +36,8 @@ namespace Pty.Net.Windows
             this.handle = handle;
             this.processHandle = processHandle;
             this.process = Process.GetProcessById(this.Pid);
-            this.process.Exited += this.Process_Exited;
             this.process.EnableRaisingEvents = true;
+            this.process.Exited += this.Process_Exited;
         }
 
         /// <inheritdoc/>
@@ -52,13 +53,21 @@ namespace Pty.Net.Windows
         public int Pid { get; }
 
         /// <inheritdoc/>
-        public int ExitCode => this.process.ExitCode;
+        public int ExitCode => this.process.HasExited ? this.process.ExitCode : 0;
 
         /// <inheritdoc/>
         public void Dispose()
         {
+            if (Interlocked.Exchange(ref this.disposed, 1) != 0)
+            {
+                return;
+            }
+
             this.ReaderStream?.Dispose();
             this.WriterStream?.Dispose();
+
+            this.process.Exited -= this.Process_Exited;
+            this.process.Dispose();
 
             this.processHandle.Close();
             winpty_free(this.handle);
@@ -67,13 +76,22 @@ namespace Pty.Net.Windows
         /// <inheritdoc/>
         public void Kill()
         {
-            this.process.Kill();
+            if (!this.process.HasExited)
+            {
+                this.process.Kill();
+            }
         }
 
         /// <inheritdoc/>
         public void Resize(int cols, int rows)
         {
-            winpty_set_size(this.handle, cols, rows, out var err);
+            winpty_set_size(this.handle, cols, rows, out IntPtr err);
+            if (err != IntPtr.Zero)
+            {
+                string message = $"Resizing winpty terminal failed: {winpty_error_msg(err)} ({winpty_error_code(err)})";
+                winpty_error_free(err);
+                throw new InvalidOperationException(message);
+            }
         }
 
         /// <inheritdoc/>
@@ -84,7 +102,7 @@ namespace Pty.Net.Windows
 
         private void Process_Exited(object sender, EventArgs e)
         {
-            this.ProcessExited?.Invoke(this, new PtyExitedEventArgs(this.process.ExitCode));
+            this.ProcessExited?.Invoke(this, new PtyExitedEventArgs(this.process.HasExited ? this.process.ExitCode : 0));
         }
     }
 }

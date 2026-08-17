@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace PtyWeb
+namespace PtyWeb.EmbedIO
 {
     public class Utils
     {
@@ -22,6 +22,7 @@ namespace PtyWeb
                 {
                     __isWin = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
                 }
+
                 return (bool)__isWin;
             }
         }
@@ -35,6 +36,7 @@ namespace PtyWeb
                 {
                     __debugFilePath = Path.Combine(Environment.CurrentDirectory, "pty-terminal.debug");
                 }
+
                 return __debugFilePath;
             }
         }
@@ -60,7 +62,10 @@ namespace PtyWeb
 
         public static void EnableVirtualTerminalProcessing()
         {
-            if (!IsWin) return;
+            if (!IsWin)
+            {
+                return;
+            }
 
             var iStdOut = GetStdHandle(STD_OUTPUT_HANDLE);
             if (!GetConsoleMode(iStdOut, out uint outConsoleMode))
@@ -87,6 +92,7 @@ namespace PtyWeb
             {
                 File.Delete(DebugFilePath);
             }
+
             Console.WriteLine($"Debug File: [{DebugFilePath}]");
 #endif
             // - `CultureInfo.CurrentCulture.TextInfo.OEMCodePage` 会受 CurrentCulture 的影响，可能不准确
@@ -106,16 +112,12 @@ namespace PtyWeb
         {
 #if DEBUG
             File.AppendAllText(DebugFilePath, msg, Encoding.UTF8);
-            // Console.Write(msg);
-            // Debug.Write(msg);
 #endif
         }
 
         public static void DebugWriteLine(string? msg = null)
         {
             DebugWrite((msg == null ? string.Empty : msg) + Environment.NewLine);
-            // Console.WriteLine(msg);
-            // Debug.WriteLine(msg);
         }
     }
 }

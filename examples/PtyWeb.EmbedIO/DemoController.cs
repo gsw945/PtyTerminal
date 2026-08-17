@@ -1,8 +1,8 @@
-﻿using EmbedIO;
+using EmbedIO;
 using EmbedIO.Routing;
 using EmbedIO.WebApi;
 
-namespace PtyWeb
+namespace PtyWeb.EmbedIO
 {
     public class DemoController : WebApiController
     {
