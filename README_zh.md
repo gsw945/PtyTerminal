@@ -1,6 +1,8 @@
-﻿[![PTY](https://img.shields.io/nuget/v/PTY.svg)](https://www.nuget.org/packages/PTY/)
+﻿# PtyTerminal
 
-# PtyTerminal
+[![PTY](https://img.shields.io/nuget/v/PTY.svg)](https://www.nuget.org/packages/PTY/) [![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/license/MIT)
+
+PtyTerminal 的 Go 版本: [ptyterminal-go](https://github.com/gsw945/ptyterminal-go)
 
 [English](./README.md) | **简体中文**
 
